@@ -1,0 +1,160 @@
+/* Domino Tile Styles */
+
+.domino {
+    width: 50px;
+    height: 100px;
+    background-color: #fdfdfd;
+    border-radius: 6px;
+    box-shadow: 
+        inset 0 0 0 1px #ccc,
+        2px 2px 5px rgba(0,0,0,0.4),
+        inset -2px -2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.domino:hover {
+    transform: translateY(-10px);
+    box-shadow: 
+        inset 0 0 0 1px #ccc,
+        4px 8px 15px rgba(0,0,0,0.5),
+        inset -2px -2px 4px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+
+.domino.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: grayscale(0.8);
+}
+.domino.disabled:hover {
+    transform: none;
+}
+
+/* Horizontal Dominoes (for board and top/bottom opponents if rotated) */
+.domino.horizontal {
+    width: 100px;
+    height: 50px;
+    flex-direction: row;
+}
+
+.domino-half {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    padding: 4px;
+    gap: 2px;
+    align-items: center;
+    justify-items: center;
+    position: relative;
+}
+
+.domino.horizontal .domino-half {
+    padding: 4px;
+}
+
+/* Divider line */
+.domino::after {
+    content: '';
+    position: absolute;
+    background: #444;
+    box-shadow: 0 1px 1px rgba(255,255,255,0.8);
+}
+
+.domino:not(.horizontal)::after {
+    top: 50%;
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    transform: translateY(-50%);
+}
+
+.domino.horizontal::after {
+    left: 50%;
+    top: 10%;
+    bottom: 10%;
+    width: 2px;
+    transform: translateX(-50%);
+}
+
+/* Dots */
+.dot {
+    width: 8px;
+    height: 8px;
+    background: #111;
+    border-radius: 50%;
+    box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5), 1px 1px 1px rgba(255,255,255,0.8);
+}
+
+/* Dot Positions in Grid (1-9) */
+/* 
+1 2 3
+4 5 6
+7 8 9
+*/
+.dot.p1 { grid-area: 1 / 1 / 2 / 2; }
+.dot.p2 { grid-area: 1 / 2 / 2 / 3; }
+.dot.p3 { grid-area: 1 / 3 / 2 / 4; }
+.dot.p4 { grid-area: 2 / 1 / 3 / 2; }
+.dot.p5 { grid-area: 2 / 2 / 3 / 3; }
+.dot.p6 { grid-area: 2 / 3 / 3 / 4; }
+.dot.p7 { grid-area: 3 / 1 / 4 / 2; }
+.dot.p8 { grid-area: 3 / 2 / 4 / 3; }
+.dot.p9 { grid-area: 3 / 3 / 4 / 4; }
+
+/* Opponent Hidden Domino (Back side) */
+.domino.hidden {
+    background-color: #222;
+    background-image: repeating-linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111), repeating-linear-gradient(45deg, #111 25%, #222 25%, #222 75%, #111 75%, #111);
+    background-position: 0 0, 10px 10px;
+    background-size: 20px 20px;
+    box-shadow: inset 0 0 0 2px #444, 2px 2px 5px rgba(0,0,0,0.5);
+    cursor: default;
+}
+.domino.hidden::after {
+    display: none;
+}
+.domino.hidden .domino-half {
+    display: none;
+}
+
+.opponent-hand .domino {
+    width: 30px;
+    height: 60px;
+    margin-left: -15px; /* Overlap */
+}
+.opponent-hand .domino:hover { transform: none; }
+
+.vertical-hand .domino {
+    width: 60px;
+    height: 30px;
+    margin-left: 0;
+    margin-top: -15px;
+}
+
+/* Board specific domino sizes */
+.board .domino {
+    position: absolute;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.6);
+    cursor: default;
+}
+.board .domino:hover {
+    transform: none; /* Already placed, don't move */
+}
+
+/* Valid move highlight */
+.domino.valid-move {
+    box-shadow: 0 0 10px 4px rgba(59, 130, 246, 0.8);
+    animation: glow 1.5s infinite alternate;
+}
+
+@keyframes glow {
+    from { box-shadow: 0 0 5px 2px rgba(59, 130, 246, 0.6); }
+    to { box-shadow: 0 0 15px 5px rgba(59, 130, 246, 1); }
+}
