@@ -151,14 +151,28 @@ class DominoGame {
         return true;
     }
 
+    drawTile(playerId) {
+        if (this.players[this.currentTurnIndex].id !== playerId) return false;
+        if (this.deck.length === 0) return false;
+        
+        const player = this.players[this.currentTurnIndex];
+        const validMoves = this.getValidMoves(player.hand);
+        if (validMoves.length > 0) return false; // Cannot draw if you already have valid moves
+
+        const tile = this.deck.pop();
+        player.hand.push(tile);
+        this.consecutivePasses = 0;
+        return true;
+    }
+
     passTurn(playerId) {
         if (this.players[this.currentTurnIndex].id !== playerId) return false;
         
         const player = this.players[this.currentTurnIndex];
         const validMoves = this.getValidMoves(player.hand);
         
-        if (validMoves.length > 0) {
-            // Cannot pass if they have a valid move
+        // Cannot pass if they have a valid move OR if reserve still has tiles to draw
+        if (validMoves.length > 0 || this.deck.length > 0) {
             return false;
         }
 
@@ -267,10 +281,6 @@ class DominoGame {
                 score: p.score,
                 isTeam2: p.isTeam2,
                 handCount: p.hand.length,
-                // Only send actual hand to the owner, but since Host sends this globally,
-                // we will send full state, and client will filter what to show.
-                // In a secure game, host would send personalized state. For this P2P project,
-                // sending full state is easiest.
                 hand: p.hand 
             })),
             board: this.board,
@@ -279,7 +289,8 @@ class DominoGame {
             currentTurnIndex: this.currentTurnIndex,
             activePlayerId: this.players[this.currentTurnIndex]?.id,
             gameState: this.gameState,
-            roundResult: this.roundResult
+            roundResult: this.roundResult,
+            deckCount: this.deck.length
         };
     }
 
@@ -291,6 +302,8 @@ class DominoGame {
         
         if (action.type === 'PLAY') {
             this.playTile(playerId, action.tile, action.side);
+        } else if (action.type === 'DRAW') {
+            this.drawTile(playerId);
         } else if (action.type === 'PASS') {
             this.passTurn(playerId);
         }

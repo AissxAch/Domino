@@ -158,15 +158,36 @@
     height: 5px;
 }
 
-/* ========= VALID MOVE HIGHLIGHT ========= */
-.domino.valid-move {
-    box-shadow: 0 0 8px 3px rgba(59, 130, 246, 0.7);
-    animation: glow 1.5s infinite alternate;
+/* ========= SELECTED TILE & BOARD TARGETS ========= */
+.domino.selected {
+    transform: translateY(-12px) scale(1.05);
+    box-shadow: 0 0 14px 4px #fbbf24;
+    border: 2px solid #fbbf24;
+    z-index: 20;
 }
 
-@keyframes glow {
-    from { box-shadow: 0 0 5px 2px rgba(59, 130, 246, 0.5); }
-    to { box-shadow: 0 0 12px 4px rgba(59, 130, 246, 0.9); }
+.board-target {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #1e293b;
+    font-weight: 800;
+    font-size: 0.85rem;
+    padding: 0.6rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
+    animation: pulseTarget 1.2s infinite alternate;
+    user-select: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.board-target:hover {
+    transform: scale(1.1);
+    background: #f59e0b;
+}
+
+@keyframes pulseTarget {
+    from { transform: scale(0.95); box-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
+    to { transform: scale(1.05); box-shadow: 0 0 16px rgba(251, 191, 36, 1); }
 }
 
 /* ========= MOBILE RESPONSIVE ========= */

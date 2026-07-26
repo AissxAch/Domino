@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startGame: document.getElementById('btn-start-game'),
         leaveLobby: document.getElementById('btn-leave-lobby'),
         passTurn: document.getElementById('btn-pass'),
+        drawTurn: document.getElementById('btn-draw'),
         nextRound: document.getElementById('btn-next-round'),
         backMenu: document.getElementById('btn-back-menu')
     };
@@ -28,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         board: document.getElementById('board'),
         localHand: document.getElementById('local-hand'),
         turnIndicator: document.getElementById('turn-indicator'),
+        reserveCount: document.getElementById('reserve-count'),
         gameOverModal: document.getElementById('game-over-modal'),
         gameOverTitle: document.getElementById('game-over-title'),
         gameOverMessage: document.getElementById('game-over-message'),
@@ -41,6 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let localPlayerId = null;
     let localPlayerName = "Player " + Math.floor(Math.random() * 1000);
     let currentState = null;
+
+    // Direct UI selection state for dual-side moves (NO popups!)
+    let selectedTileForBoth = null;
 
     function getPlayerName() {
         const nameInput = document.getElementById('player-name');
@@ -105,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const onGameStart = (state) => {
         currentState = state;
+        selectedTileForBoth = null;
         switchScreen('game');
         renderGame(state);
     };
@@ -212,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const state = game.startRound(game.roundResult.winnerIndex);
         network.broadcastState(state);
         gameUI.gameOverModal.classList.add('hidden');
+        selectedTileForBoth = null;
         currentState = state;
         renderGame(state);
     });
@@ -226,7 +233,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     buttons.passTurn.addEventListener('click', () => {
         if (network) {
+            selectedTileForBoth = null;
             network.sendAction({ type: 'PASS' });
+        }
+    });
+
+    buttons.drawTurn.addEventListener('click', () => {
+        if (network) {
+            selectedTileForBoth = null;
+            network.sendAction({ type: 'DRAW' });
         }
     });
 
@@ -280,6 +295,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (localIndex === -1) return;
         const myPlayer = state.players[localIndex];
         const numPlayers = state.players.length;
+
+        // Reserve Count Update
+        const deckCount = state.deckCount !== undefined ? state.deckCount : 0;
+        if (gameUI.reserveCount) {
+            gameUI.reserveCount.innerText = deckCount;
+        }
         
         // Get opponents in clockwise order
         const opponents = [];
@@ -322,7 +343,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const validOptions = validMoves.filter(v => v.tile[0] === tile[0] && v.tile[1] === tile[1]);
                 if (validOptions.length > 0) {
                     domTile.classList.add('valid-move');
-                    domTile.addEventListener('click', () => handleTileClick(tile, validOptions));
+                    
+                    // Check if this tile is currently selected for dual-side move
+                    if (selectedTileForBoth && selectedTileForBoth[0] === tile[0] && selectedTileForBoth[1] === tile[1]) {
+                        domTile.classList.add('selected');
+                    }
+
+                    domTile.addEventListener('click', () => handleTileClick(tile, validOptions, state));
                 } else {
                     domTile.classList.add('disabled');
                 }
@@ -332,23 +359,32 @@ document.addEventListener('DOMContentLoaded', () => {
             gameUI.localHand.appendChild(domTile);
         });
 
-        // Turn Indicator & Pass Button
+        // Turn Indicator & Draw / Pass Buttons
         gameUI.turnIndicator.classList.toggle('active-turn', isMyTurn);
         if (isMyTurn) {
             gameUI.turnIndicator.innerText = "Your Turn!";
             if (validMoves.length === 0) {
-                buttons.passTurn.classList.remove('hidden');
+                if (deckCount > 0) {
+                    buttons.drawTurn.classList.remove('hidden');
+                    buttons.passTurn.classList.add('hidden');
+                } else {
+                    buttons.drawTurn.classList.add('hidden');
+                    buttons.passTurn.classList.remove('hidden');
+                }
             } else {
+                buttons.drawTurn.classList.add('hidden');
                 buttons.passTurn.classList.add('hidden');
             }
         } else {
             const activePlayer = state.players.find(p => p.id === state.activePlayerId);
             gameUI.turnIndicator.innerText = `${activePlayer ? activePlayer.name : 'Waiting'}'s Turn`;
+            buttons.drawTurn.classList.add('hidden');
             buttons.passTurn.classList.add('hidden');
+            selectedTileForBoth = null;
         }
 
         // Board
-        renderBoard(state.board);
+        renderBoard(state.board, state);
 
         // Game Over
         if (state.gameState === 'ROUND_OVER' || state.gameState === 'GAME_OVER') {
@@ -370,29 +406,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const handContainer = document.getElementById(`hand-${position}`);
         handContainer.innerHTML = '';
-        const isVertical = (position === 'left' || position === 'right');
         for (let i = 0; i < player.handCount; i++) {
             handContainer.appendChild(createDominoElement([0, 0], true, false));
         }
     }
 
-    function renderBoard(boardTiles) {
+    function renderBoard(boardTiles, state) {
         gameUI.board.innerHTML = '';
-        if (!boardTiles || boardTiles.length === 0) return;
+        
+        // Direct UI target indicators when selecting a dual-side tile
+        if (selectedTileForBoth && boardTiles && boardTiles.length > 0) {
+            const leftTarget = document.createElement('div');
+            leftTarget.className = 'board-target left-target';
+            leftTarget.innerText = '⬅ Play Left';
+            leftTarget.addEventListener('click', () => {
+                network.sendAction({ type: 'PLAY', tile: selectedTileForBoth, side: 'left' });
+                selectedTileForBoth = null;
+            });
+            gameUI.board.appendChild(leftTarget);
+        }
 
-        boardTiles.forEach(bTile => {
-            const isDouble = bTile.tile[0] === bTile.tile[1];
-            // Doubles render vertically, non-doubles horizontally
-            const domTile = createDominoElement(bTile.tile, false, !isDouble);
-            
-            // If rotated, reverse the visual order of halves
-            if (!isDouble && bTile.rotated) {
-                domTile.style.flexDirection = 'row-reverse';
-            }
-            
-            domTile.style.cursor = 'default';
-            gameUI.board.appendChild(domTile);
-        });
+        if (boardTiles && boardTiles.length > 0) {
+            boardTiles.forEach(bTile => {
+                const isDouble = bTile.tile[0] === bTile.tile[1];
+                const domTile = createDominoElement(bTile.tile, false, !isDouble);
+                
+                if (!isDouble && bTile.rotated) {
+                    domTile.style.flexDirection = 'row-reverse';
+                }
+                
+                domTile.style.cursor = 'default';
+                gameUI.board.appendChild(domTile);
+            });
+        }
+
+        if (selectedTileForBoth && boardTiles && boardTiles.length > 0) {
+            const rightTarget = document.createElement('div');
+            rightTarget.className = 'board-target right-target';
+            rightTarget.innerText = 'Play Right ➡';
+            rightTarget.addEventListener('click', () => {
+                network.sendAction({ type: 'PLAY', tile: selectedTileForBoth, side: 'right' });
+                selectedTileForBoth = null;
+            });
+            gameUI.board.appendChild(rightTarget);
+        }
 
         // Center-scroll if board overflows
         const container = document.querySelector('.board-container');
@@ -416,54 +473,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let valid = [];
         hand.forEach(tile => {
-            if (tile[0] === leftEnd || tile[1] === leftEnd) valid.push({ tile, side: 'left' });
-            if (tile[0] === rightEnd || tile[1] === rightEnd) valid.push({ tile, side: 'right' });
+            const matchesLeft = (tile[0] === leftEnd || tile[1] === leftEnd);
+            const matchesRight = (tile[0] === rightEnd || tile[1] === rightEnd);
+            if (matchesLeft) valid.push({ tile, side: 'left' });
+            if (matchesRight) valid.push({ tile, side: 'right' });
         });
         return valid;
     }
 
-    function handleTileClick(tile, validOptions) {
+    function handleTileClick(tile, validOptions, state) {
+        // If tile matches only ONE side, play immediately!
         if (validOptions.length === 1) {
+            selectedTileForBoth = null;
             network.sendAction({ type: 'PLAY', tile: tile, side: validOptions[0].side });
             return;
         }
 
-        // Show a proper side chooser instead of window.confirm
-        showSideChooser(tile);
-    }
-
-    function showSideChooser(tile) {
-        // Remove any existing chooser
-        const existing = document.querySelector('.side-chooser-overlay');
-        if (existing) existing.remove();
-
-        const overlay = document.createElement('div');
-        overlay.className = 'side-chooser-overlay';
+        // If tile matches BOTH sides, toggle direct UI selection on the board (NO POPUPS!)
+        if (selectedTileForBoth && selectedTileForBoth[0] === tile[0] && selectedTileForBoth[1] === tile[1]) {
+            selectedTileForBoth = null; // Deselect
+        } else {
+            selectedTileForBoth = tile; // Select & show ⬅ Left / Right ➡ targets on board
+        }
         
-        const chooser = document.createElement('div');
-        chooser.className = 'side-chooser';
-        chooser.innerHTML = `
-            <h3>Play [${tile[0]}|${tile[1]}] on which side?</h3>
-            <div class="side-chooser-buttons">
-                <button class="primary-btn" id="choose-left">⬅ Left</button>
-                <button class="secondary-btn" id="choose-right">Right ➡</button>
-            </div>
-        `;
-        
-        overlay.appendChild(chooser);
-        document.body.appendChild(overlay);
-
-        document.getElementById('choose-left').addEventListener('click', () => {
-            network.sendAction({ type: 'PLAY', tile: tile, side: 'left' });
-            overlay.remove();
-        });
-        document.getElementById('choose-right').addEventListener('click', () => {
-            network.sendAction({ type: 'PLAY', tile: tile, side: 'right' });
-            overlay.remove();
-        });
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) overlay.remove();
-        });
+        renderGame(state || currentState);
     }
 
     function showGameOverModal(state) {
