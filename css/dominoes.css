@@ -1,52 +1,47 @@
-/* ========= DOMINO TILE STYLES ========= */
+/* ========= DOMINO TILE — Premium 3D Ivory Look ========= */
 
 .domino {
-    width: 44px;
-    height: 88px;
-    background: linear-gradient(145deg, #fefefe, #e8e8e8);
-    border-radius: 6px;
+    --tile-w: 42px;
+    --tile-h: 84px;
+    width: var(--tile-w);
+    height: var(--tile-h);
+    background: linear-gradient(160deg, #fafafa 0%, #e8e8e8 100%);
+    border-radius: 5px;
     box-shadow: 
-        inset 0 0 0 1px #ccc,
-        2px 2px 6px rgba(0,0,0,0.35),
-        inset -1px -1px 3px rgba(0,0,0,0.08);
+        0 1px 0 0 #ddd,
+        0 2px 4px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.9);
     display: flex;
     flex-direction: column;
     position: relative;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
     user-select: none;
     flex-shrink: 0;
 }
 
-.domino:hover {
-    transform: translateY(-8px);
-    box-shadow: 
-        inset 0 0 0 1px #ccc,
-        3px 6px 12px rgba(0,0,0,0.5),
-        inset -1px -1px 3px rgba(0,0,0,0.08);
+/* Hand tiles hover lift */
+.hand-tray .domino:not(.disabled):hover {
+    transform: translateY(-10px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.9);
     z-index: 10;
 }
 
 .domino.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    filter: grayscale(0.6);
+    opacity: 0.45;
+    cursor: default;
+    filter: saturate(0.5);
 }
-.domino.disabled:hover {
-    transform: none;
-    box-shadow: 
-        inset 0 0 0 1px #ccc,
-        2px 2px 6px rgba(0,0,0,0.35),
-        inset -1px -1px 3px rgba(0,0,0,0.08);
-}
+.domino.disabled:hover { transform: none; }
 
-/* Horizontal Dominoes (for board) */
+/* Horizontal layout (board non-doubles) */
 .domino.horizontal {
-    width: 88px;
-    height: 44px;
+    width: var(--tile-h);
+    height: var(--tile-w);
     flex-direction: row;
 }
 
+/* ---- Halves & Dots ---- */
 .domino-half {
     flex: 1;
     display: grid;
@@ -56,174 +51,104 @@
     gap: 1px;
     align-items: center;
     justify-items: center;
-    position: relative;
 }
 
-/* Divider line */
+/* Center divider */
 .domino::after {
     content: '';
     position: absolute;
-    background: #999;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    background: #aaa;
 }
-
 .domino:not(.horizontal)::after {
-    top: 50%;
-    left: 12%;
-    right: 12%;
-    height: 1.5px;
-    transform: translateY(-50%);
+    top: 50%; left: 14%; right: 14%; height: 1px; transform: translateY(-50%);
 }
-
 .domino.horizontal::after {
-    left: 50%;
-    top: 12%;
-    bottom: 12%;
-    width: 1.5px;
-    transform: translateX(-50%);
+    left: 50%; top: 14%; bottom: 14%; width: 1px; transform: translateX(-50%);
 }
 
 /* Dots */
 .dot {
-    width: 7px;
-    height: 7px;
-    background: #222;
+    width: 6px;
+    height: 6px;
+    background: radial-gradient(circle at 35% 35%, #444, #111);
     border-radius: 50%;
-    box-shadow: inset 1px 1px 1px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.5);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.3);
 }
 
-/* Dot Positions in Grid (3x3)
-   1 2 3
-   4 5 6
-   7 8 9
-*/
-.dot.p1 { grid-area: 1 / 1 / 2 / 2; }
-.dot.p2 { grid-area: 1 / 2 / 2 / 3; }
-.dot.p3 { grid-area: 1 / 3 / 2 / 4; }
-.dot.p4 { grid-area: 2 / 1 / 3 / 2; }
-.dot.p5 { grid-area: 2 / 2 / 3 / 3; }
-.dot.p6 { grid-area: 2 / 3 / 3 / 4; }
-.dot.p7 { grid-area: 3 / 1 / 4 / 2; }
-.dot.p8 { grid-area: 3 / 2 / 4 / 3; }
-.dot.p9 { grid-area: 3 / 3 / 4 / 4; }
+/* Dot grid positions */
+.dot.p1 { grid-area: 1/1/2/2; }
+.dot.p2 { grid-area: 1/2/2/3; }
+.dot.p3 { grid-area: 1/3/2/4; }
+.dot.p4 { grid-area: 2/1/3/2; }
+.dot.p5 { grid-area: 2/2/3/3; }
+.dot.p6 { grid-area: 2/3/3/4; }
+.dot.p7 { grid-area: 3/1/4/2; }
+.dot.p8 { grid-area: 3/2/4/3; }
+.dot.p9 { grid-area: 3/3/4/4; }
 
-/* ========= OPPONENT HIDDEN TILES (face down) ========= */
+/* ========= FACE-DOWN TILES ========= */
 .domino.facedown {
-    background: #1a1a2e;
-    background-image: 
-        repeating-linear-gradient(45deg, transparent 0, transparent 4px, rgba(255,255,255,0.03) 4px, rgba(255,255,255,0.03) 8px);
-    box-shadow: inset 0 0 0 2px #333, 2px 2px 6px rgba(0,0,0,0.5);
+    background: linear-gradient(145deg, #1a1a2e, #16163a);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4), inset 0 0 0 1.5px #2a2a4a;
     cursor: default;
 }
 .domino.facedown::after { display: none; }
 .domino.facedown .domino-half { display: none; }
 .domino.facedown:hover { transform: none; }
 
-/* Opponent hand tiles (smaller) */
-.opponent-hand .domino {
-    width: 24px;
-    height: 46px;
-    margin-left: -10px;
-}
-.opponent-hand .domino:first-child { margin-left: 0; }
-.opponent-hand .domino:hover { transform: none; }
-
-.vertical-hand .domino {
-    width: 46px;
-    height: 24px;
-    margin-left: 0;
-    margin-top: -10px;
-}
-.vertical-hand .domino:first-child { margin-top: 0; }
-
-/* ========= BOARD TILES ========= */
-.board .domino {
-    cursor: default;
-}
-.board .domino:hover {
-    transform: none;
+/* Decorative back pattern */
+.domino.facedown::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: 
+        repeating-linear-gradient(45deg, transparent 0, transparent 3px, rgba(255,255,255,0.02) 3px, rgba(255,255,255,0.02) 6px);
 }
 
-/* Board tile sizes (slightly smaller than hand) */
-.board .domino:not(.horizontal) {
-    width: 36px;
-    height: 72px;
+/* ========= VALID MOVE HIGHLIGHT ========= */
+.domino.valid-move {
+    box-shadow: 0 0 8px 2px rgba(79,156,247,0.6), 0 2px 4px rgba(0,0,0,0.25);
+    animation: validGlow 1.5s ease-in-out infinite alternate;
 }
-.board .domino.horizontal {
-    width: 72px;
-    height: 36px;
-}
-.board .dot {
-    width: 5px;
-    height: 5px;
+@keyframes validGlow {
+    from { box-shadow: 0 0 6px 1px rgba(79,156,247,0.4), 0 2px 4px rgba(0,0,0,0.2); }
+    to { box-shadow: 0 0 12px 4px rgba(79,156,247,0.8), 0 2px 4px rgba(0,0,0,0.3); }
 }
 
-/* ========= SELECTED TILE & BOARD TARGETS ========= */
+/* ========= SELECTED TILE ========= */
 .domino.selected {
-    transform: translateY(-12px) scale(1.05);
-    box-shadow: 0 0 14px 4px #fbbf24;
-    border: 2px solid #fbbf24;
+    transform: translateY(-12px) scale(1.06);
+    box-shadow: 0 0 16px 4px var(--gold-glow, rgba(251,191,36,0.6)), 0 4px 8px rgba(0,0,0,0.3);
+    outline: 2px solid #fbbf24;
+    outline-offset: 1px;
     z-index: 20;
 }
 
-.board-target {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    color: #1e293b;
-    font-weight: 800;
-    font-size: 0.85rem;
-    padding: 0.6rem 1rem;
-    border-radius: 20px;
-    cursor: pointer;
-    box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
-    animation: pulseTarget 1.2s infinite alternate;
-    user-select: none;
-    white-space: nowrap;
-    flex-shrink: 0;
+/* ========= BOARD TILES ========= */
+.board .domino {
+    --tile-w: 36px;
+    --tile-h: 72px;
+    cursor: default;
+    /* Tile on felt shadow */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.8);
 }
-.board-target:hover {
-    transform: scale(1.1);
-    background: #f59e0b;
-}
+.board .domino:hover { transform: none; }
+.board .domino.horizontal { width: var(--tile-h); height: var(--tile-w); }
+.board .dot { width: 5px; height: 5px; }
 
-@keyframes pulseTarget {
-    from { transform: scale(0.95); box-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
-    to { transform: scale(1.05); box-shadow: 0 0 16px rgba(251, 191, 36, 1); }
-}
-
-/* ========= MOBILE RESPONSIVE ========= */
+/* ========= MOBILE ========= */
 @media (max-width: 600px) {
-    .domino {
-        width: 36px;
-        height: 72px;
-    }
-    .domino.horizontal {
-        width: 72px;
-        height: 36px;
-    }
-    .dot { width: 5px; height: 5px; }
+    .domino { --tile-w: 36px; --tile-h: 72px; }
     .domino-half { padding: 2px; }
+    .dot { width: 5px; height: 5px; }
     
-    .opponent-hand .domino {
-        width: 20px;
-        height: 38px;
-        margin-left: -8px;
-    }
-    .vertical-hand .domino {
-        width: 38px;
-        height: 20px;
-        margin-top: -8px;
-    }
-    
-    .board .domino:not(.horizontal) {
-        width: 30px;
-        height: 60px;
-    }
-    .board .domino.horizontal {
-        width: 60px;
-        height: 30px;
-    }
-    .board .dot {
-        width: 4px;
-        height: 4px;
-    }
+    .board .domino { --tile-w: 30px; --tile-h: 60px; }
+    .board .dot { width: 4px; height: 4px; }
+}
+
+@media (max-height: 600px) {
+    .domino { --tile-w: 32px; --tile-h: 64px; }
+    .board .domino { --tile-w: 26px; --tile-h: 52px; }
 }

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Algerian Dominoes Online</title>
+    <meta name="description" content="Play Algerian Dominoes online with friends. Real-time multiplayer P2P game.">
     
     <!-- PeerJS CDN -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -11,7 +12,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 
     <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
@@ -19,40 +20,36 @@
 </head>
 <body>
     <div id="app">
-        <!-- Main Menu -->
+        <!-- ========= MAIN MENU ========= -->
         <div id="main-menu" class="screen active">
             <div class="glass-panel">
                 <h1>Dominoes</h1>
-                <p class="subtitle">Algerian Rules • Online</p>
+                <p class="subtitle">Algerian Rules • Online Multiplayer</p>
                 
                 <div class="menu-actions">
-                    <input type="text" id="player-name" placeholder="Your Name" autocomplete="off" maxlength="15">
+                    <input type="text" id="player-name" placeholder="Your Name" autocomplete="off" maxlength="12">
                     <button id="btn-host" class="primary-btn">🏠 Host Game</button>
                     <div class="divider"><span>OR</span></div>
-                    <div class="join-container">
-                        <input type="text" id="join-code" placeholder="Enter Room Code" autocomplete="off" style="text-transform: uppercase;">
-                        <button id="btn-join" class="secondary-btn">🔗 Join Game</button>
-                    </div>
+                    <input type="text" id="join-code" placeholder="Room Code" autocomplete="off" style="text-transform:uppercase; text-align:center; letter-spacing:3px; font-weight:700;">
+                    <button id="btn-join" class="secondary-btn">🔗 Join Game</button>
                 </div>
                 <div id="status-log" class="status-log hidden"></div>
             </div>
         </div>
 
-        <!-- Lobby Screen -->
+        <!-- ========= LOBBY ========= -->
         <div id="lobby-screen" class="screen">
             <div class="glass-panel">
                 <h2>Game Lobby</h2>
                 <div class="room-code-display">
-                    <p>Room Code:</p>
+                    <p>Share this code:</p>
                     <h3 id="display-room-code">----</h3>
                     <button id="btn-copy-code" class="small-btn">📋 Copy</button>
                 </div>
-
                 <div class="players-list">
                     <h3>Players (<span id="player-count">1</span>/4)</h3>
                     <ul id="lobby-players"></ul>
                 </div>
-                
                 <div class="lobby-actions">
                     <button id="btn-start-game" class="primary-btn hidden">▶ Start Game</button>
                     <button id="btn-leave-lobby" class="danger-btn">✖ Leave</button>
@@ -60,57 +57,69 @@
             </div>
         </div>
 
-        <!-- Game Screen -->
+        <!-- ========= GAME SCREEN ========= -->
         <div id="game-screen" class="screen">
-            <!-- Top Opponent -->
-            <div class="top-opponent" id="area-top" style="display:none;">
-                <div class="player-info" id="player-top-info">
-                    <span class="player-name">---</span>
-                    <span class="player-score">0</span>
-                </div>
-                <div class="opponent-hand" id="hand-top"></div>
-            </div>
 
-            <!-- Middle: Left + Board + Right -->
-            <div class="game-middle">
-                <div class="left-opponent" id="area-left" style="display:none;">
-                    <div class="player-info" id="player-left-info">
-                        <span class="player-name">---</span>
-                        <span class="player-score">0</span>
+            <!-- Top bar: opponents + game info -->
+            <div class="game-top-bar">
+                <div class="opponent-slot" id="opp-slot-0">
+                    <div class="opponent-badge" id="opp-badge-0">
+                        <span class="opp-name">---</span>
+                        <span class="opp-score">0 pts</span>
+                        <span class="opp-tiles">🁣 0</span>
                     </div>
-                    <div class="opponent-hand vertical-hand" id="hand-left"></div>
                 </div>
 
-                <div class="board-container">
-                    <div id="board" class="board"></div>
-                </div>
-
-                <div class="right-opponent" id="area-right" style="display:none;">
-                    <div class="player-info" id="player-right-info">
-                        <span class="player-name">---</span>
-                        <span class="player-score">0</span>
+                <div class="game-info-center">
+                    <div class="reserve-badge">
+                        <span class="reserve-icon">📦</span>
+                        Reserve: <strong id="reserve-count">0</strong>
                     </div>
-                    <div class="opponent-hand vertical-hand" id="hand-right"></div>
                 </div>
-            </div>
 
-            <!-- Local Player -->
-            <div class="local-player">
-                <div class="game-controls">
-                    <div id="turn-indicator" class="turn-indicator">Waiting...</div>
-                    <button id="btn-draw" class="primary-btn hidden" style="width:auto; padding: 0.3rem 0.8rem; font-size: 0.8rem;">📥 Draw (<span id="reserve-count">0</span>)</button>
-                    <button id="btn-pass" class="warning-btn hidden" style="width:auto; padding: 0.3rem 0.8rem; font-size: 0.8rem;">Pass Turn</button>
-                </div>
-                <div class="local-hand-container">
-                    <div class="player-info local-info" id="player-local-info">
-                        <span class="player-name">You</span>
-                        <span class="player-score">Score: 0</span>
+                <div class="opponent-slot" id="opp-slot-1">
+                    <div class="opponent-badge" id="opp-badge-1">
+                        <span class="opp-name">---</span>
+                        <span class="opp-score">0 pts</span>
+                        <span class="opp-tiles">🁣 0</span>
                     </div>
-                    <div id="local-hand" class="local-hand"></div>
+                </div>
+
+                <div class="opponent-slot" id="opp-slot-2">
+                    <div class="opponent-badge" id="opp-badge-2">
+                        <span class="opp-name">---</span>
+                        <span class="opp-score">0 pts</span>
+                        <span class="opp-tiles">🁣 0</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- End Round / Game Modal -->
+            <!-- The felt table board -->
+            <div class="board-area">
+                <div class="board-scroller">
+                    <div id="board" class="board">
+                        <div class="board-empty">Place first tile</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom: controls + hand -->
+            <div class="player-bottom">
+                <div class="controls-row">
+                    <div id="turn-indicator" class="turn-badge">Waiting...</div>
+                    <button id="btn-draw" class="action-btn draw-btn hidden">📥 Draw (<span id="draw-count">0</span>)</button>
+                    <button id="btn-pass" class="action-btn pass-btn hidden">Pass</button>
+                </div>
+                <div class="hand-tray" id="hand-tray">
+                    <div class="player-info-inline" id="player-local-info">
+                        <span class="pi-name">You</span>
+                        <span class="pi-score">0 pts</span>
+                    </div>
+                    <div id="local-hand" style="display:flex; gap:4px; align-items:flex-end; justify-content:center; flex:1;"></div>
+                </div>
+            </div>
+
+            <!-- Game Over Modal -->
             <div id="game-over-modal" class="modal hidden">
                 <div class="glass-panel modal-content">
                     <h2 id="game-over-title">Round Over!</h2>
