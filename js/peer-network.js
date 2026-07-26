@@ -7,13 +7,12 @@ class PeerNetwork {
         this.playerId = null;
         this.players = [];
         
-        // STUN/TURN ICE Servers Configuration
-        this.meteredAppName = "";
-        this.meteredApiKey = "";
-        
-        // Static TURN credentials fallback
-        this.turnUsername = "";
-        this.turnPassword = "";
+        // STUN/TURN ICE Servers Configuration (read from env.js if present)
+        const env = window.ENV || {};
+        this.meteredAppName = env.METERED_APP_NAME || "";
+        this.meteredApiKey = env.METERED_API_KEY || "";
+        this.turnUsername = env.TURN_USERNAME || "";
+        this.turnPassword = env.TURN_PASSWORD || "";
 
         this.iceConfig = {
             iceServers: [

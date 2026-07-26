@@ -1,0 +1,4 @@
+# Environment configuration (DO NOT COMMIT YOUR REAL KEYS)
+env.js
+.env
+*.env.local
