@@ -7,7 +7,11 @@ class PeerNetwork {
         this.playerId = null;
         this.players = [];
         
-        // ICE servers config with multiple TURN providers for mobile data
+        // STUN/TURN ICE Servers Configuration
+        // Note: Mobile data requires a TURN server (e.g. Metered.ca free 20GB/month account)
+        this.meteredApiKey = ""; // Insert Metered API Key here if available (e.g., "abcdef123456...")
+        this.meteredAppName = ""; // Insert Metered App Name here if available (e.g., "my-domino-app")
+
         this.iceConfig = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -15,33 +19,8 @@ class PeerNetwork {
                 { urls: 'stun:stun2.l.google.com:19302' },
                 { urls: 'stun:stun3.l.google.com:19302' },
                 { urls: 'stun:stun4.l.google.com:19302' },
-                // Free TURN servers from different providers
-                {
-                    urls: 'turn:openrelay.metered.ca:80',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turns:openrelay.metered.ca:443?transport=tcp',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                // Backup free TURN
-                {
-                    urls: 'turn:numb.viagenie.ca',
-                    username: 'webrtc@live.com',
-                    credential: 'muazkh'
-                },
-                {
-                    urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
-                    username: 'webrtc',
-                    credential: 'webrtc'
-                }
+                { urls: 'stun:stun.cloudflare.com:3478' },
+                { urls: 'stun:stun.services.mozilla.com' }
             ],
             iceCandidatePoolSize: 10
         };
@@ -61,11 +40,29 @@ class PeerNetwork {
         if (this.onStatus) this.onStatus(msg);
     }
 
-    hostRoom(playerName) {
-        return new Promise((resolve, reject) => {
+    async fetchIceConfig() {
+        if (this.meteredAppName && this.meteredApiKey) {
+            try {
+                this.log('⏳ Fetching TURN relay credentials...');
+                const res = await fetch(`https://${this.meteredAppName}.metered.live/api/v1/turn/credentials?apiKey=${this.meteredApiKey}`);
+                const iceServers = await res.json();
+                if (Array.isArray(iceServers) && iceServers.length > 0) {
+                    this.iceConfig.iceServers = iceServers;
+                    this.log('✅ TURN relay credentials loaded!');
+                }
+            } catch (err) {
+                this.log('⚠️ Failed to fetch TURN credentials, using default STUN');
+            }
+        }
+        return this.iceConfig;
+    }
+
+    async hostRoom(playerName) {
+        return new Promise(async (resolve, reject) => {
             this.roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
             const fullPeerId = 'alg-domino-' + this.roomId;
             
+            await this.fetchIceConfig();
             this.log('⏳ Connecting to signaling server...');
             
             this.peer = new Peer(fullPeerId, {
@@ -101,12 +98,13 @@ class PeerNetwork {
         });
     }
 
-    joinRoom(roomId, playerName) {
-        return new Promise((resolve, reject) => {
+    async joinRoom(roomId, playerName) {
+        return new Promise(async (resolve, reject) => {
             this.roomId = roomId.toUpperCase();
             const hostPeerId = 'alg-domino-' + this.roomId;
             let settled = false;
             
+            await this.fetchIceConfig();
             this.log('⏳ Connecting to signaling server...');
             
             this.peer = new Peer(undefined, {
