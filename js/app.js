@@ -32,6 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
         reserveCount: document.getElementById('reserve-count'),
         drawCount: document.getElementById('draw-count'),
         localInfo: document.getElementById('player-local-info'),
+        openEndsBadge: document.getElementById('open-ends-badge'),
+        boardLeftEnd: document.getElementById('board-left-end'),
+        boardRightEnd: document.getElementById('board-right-end'),
+        sideBar: document.getElementById('side-selector-bar'),
+        btnSideLeft: document.getElementById('btn-side-left'),
+        btnSideRight: document.getElementById('btn-side-right'),
+        valSideLeft: document.getElementById('val-side-left'),
+        valSideRight: document.getElementById('val-side-right'),
         gameOverModal: document.getElementById('game-over-modal'),
         gameOverTitle: document.getElementById('game-over-title'),
         gameOverMsg: document.getElementById('game-over-message'),
@@ -186,6 +194,26 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.pass.addEventListener('click', () => { selectedTile = null; network?.sendAction({ type: 'PASS' }); });
     btn.draw.addEventListener('click', () => { selectedTile = null; network?.sendAction({ type: 'DRAW' }); });
 
+    // Side Selector Buttons (Floating Action Bar for Dual-Side Moves)
+    if (gameUI.btnSideLeft) {
+        gameUI.btnSideLeft.addEventListener('click', () => {
+            if (selectedTile) {
+                network?.sendAction({ type: 'PLAY', tile: selectedTile, side: 'left' });
+                selectedTile = null;
+                if (currentState) render(currentState);
+            }
+        });
+    }
+    if (gameUI.btnSideRight) {
+        gameUI.btnSideRight.addEventListener('click', () => {
+            if (selectedTile) {
+                network?.sendAction({ type: 'PLAY', tile: selectedTile, side: 'right' });
+                selectedTile = null;
+                if (currentState) render(currentState);
+            }
+        });
+    }
+
     // ========= DOMINO ELEMENT BUILDER =========
     const DOT_MAP = { 0:[], 1:[5], 2:[1,9], 3:[1,5,9], 4:[1,3,7,9], 5:[1,3,5,7,9], 6:[1,3,4,6,7,9] };
 
@@ -237,9 +265,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // --- Reserve ---
+        // --- Reserve & Open Ends ---
         gameUI.reserveCount.textContent = deckCount;
         if (gameUI.drawCount) gameUI.drawCount.textContent = deckCount;
+
+        if (state.board && state.board.length > 0) {
+            gameUI.openEndsBadge.classList.remove('hidden');
+            gameUI.boardLeftEnd.textContent = 'L: ' + state.leftEnd;
+            gameUI.boardRightEnd.textContent = 'R: ' + state.rightEnd;
+        } else {
+            gameUI.openEndsBadge.classList.add('hidden');
+        }
 
         // --- My info ---
         const team = me.isTeam2 ? ' (T2)' : (n === 4 ? ' (T1)' : '');
@@ -269,6 +305,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             gameUI.localHand.appendChild(el);
         });
+
+        // --- Floating Side Selector Bar for Dual-Side Move ---
+        if (selectedTile && myTurn) {
+            gameUI.sideBar.classList.remove('hidden');
+            gameUI.valSideLeft.textContent = state.leftEnd;
+            gameUI.valSideRight.textContent = state.rightEnd;
+        } else {
+            gameUI.sideBar.classList.add('hidden');
+        }
 
         // --- Turn indicator & action buttons ---
         gameUI.turnBadge.classList.toggle('my-turn', myTurn);
@@ -317,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Left target
+        // Inline Left target (on board end)
         if (selectedTile && tiles.length > 0) {
             const lt = document.createElement('div');
             lt.className = 'board-target';
@@ -338,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameUI.board.appendChild(el);
         });
 
-        // Right target
+        // Inline Right target (on board end)
         if (selectedTile && tiles.length > 0) {
             const rt = document.createElement('div');
             rt.className = 'board-target';
@@ -350,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameUI.board.appendChild(rt);
         }
 
-        // Center scroll
+        // Auto-center scroller
         if (gameUI.boardScroller) {
             requestAnimationFrame(() => {
                 const sl = (gameUI.board.scrollWidth - gameUI.boardScroller.clientWidth) / 2;
@@ -374,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return v;
     }
 
-    // ========= TILE CLICK (INLINE SIDE SELECTION) =========
+    // ========= TILE CLICK =========
     function onTileClick(tile, opts, state) {
         if (opts.length === 1) {
             selectedTile = null;

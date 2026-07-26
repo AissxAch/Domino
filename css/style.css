@@ -234,6 +234,51 @@ input[type="text"]::placeholder { color: #667788; }
 }
 .reserve-badge .reserve-icon { font-size: 0.8rem; }
 
+.open-ends-badge {
+    background: rgba(251, 191, 36, 0.15);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 0.65rem;
+    color: var(--gold);
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+/* Side Selector Bar (Floating above player controls) */
+.side-selector-bar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 4px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.side-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.left-side-btn {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+}
+.left-side-btn:hover { background: #2563eb; transform: scale(1.05); }
+
+.right-side-btn {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #1a1a1a;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.5);
+}
+.right-side-btn:hover { background: #f59e0b; transform: scale(1.05); }
+
 /* ---- Board Area (The Felt Table) ---- */
 .board-area {
     flex: 1;

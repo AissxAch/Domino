@@ -75,6 +75,9 @@
                         <span class="reserve-icon">📦</span>
                         Reserve: <strong id="reserve-count">0</strong>
                     </div>
+                    <div id="open-ends-badge" class="open-ends-badge hidden">
+                        <span id="board-left-end">L: -</span> | <span id="board-right-end">R: -</span>
+                    </div>
                 </div>
 
                 <div class="opponent-slot" id="opp-slot-1">
@@ -105,6 +108,12 @@
 
             <!-- Bottom: controls + hand -->
             <div class="player-bottom">
+                <!-- Dual-Side Move Action Selector (floating above controls) -->
+                <div id="side-selector-bar" class="side-selector-bar hidden">
+                    <button id="btn-side-left" class="side-btn left-side-btn">⬅ Play Left (<span id="val-side-left">?</span>)</button>
+                    <button id="btn-side-right" class="side-btn right-side-btn">Play Right (<span id="val-side-right">?</span>) ➡</button>
+                </div>
+
                 <div class="controls-row">
                     <div id="turn-indicator" class="turn-badge">Waiting...</div>
                     <button id="btn-draw" class="action-btn draw-btn hidden">📥 Draw (<span id="draw-count">0</span>)</button>
