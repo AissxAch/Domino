@@ -9,7 +9,7 @@ class PeerNetwork {
         
         // STUN/TURN ICE Servers Configuration
         this.meteredAppName = "aissxdev";
-        this.meteredApiKey = "mwIrxZ9zwys65f8QzLsIv3hCSK1G5ZFlL1p9tAPfG4jA-1KD";
+        this.meteredApiKey = "3d53304bd4a433092bcf89d91b86883cd655";
         
         // Static TURN credentials fallback (if you copy Username & Password from Metered dashboard)
         this.turnUsername = "";
