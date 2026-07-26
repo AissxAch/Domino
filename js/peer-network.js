@@ -1,17 +1,21 @@
 class PeerNetwork {
     constructor(onStateUpdate, onPlayerJoin, onPlayerLeave, onGameStart) {
         this.peer = null;
-        this.connections = []; // Connections to other peers
+        this.connections = [];
         this.isHost = false;
         this.roomId = null;
-        this.playerId = null; // My peer ID
-        this.players = []; // Array of { id, name, isHost }
+        this.playerId = null;
+        this.players = [];
         
-        // ICE servers config: STUN + free TURN relays for mobile data NAT traversal
+        // ICE servers config with multiple TURN providers for mobile data
         this.iceConfig = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                // Free TURN servers from different providers
                 {
                     urls: 'turn:openrelay.metered.ca:80',
                     username: 'openrelayproject',
@@ -23,11 +27,23 @@ class PeerNetwork {
                     credential: 'openrelayproject'
                 },
                 {
-                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                    urls: 'turns:openrelay.metered.ca:443?transport=tcp',
                     username: 'openrelayproject',
                     credential: 'openrelayproject'
+                },
+                // Backup free TURN
+                {
+                    urls: 'turn:numb.viagenie.ca',
+                    username: 'webrtc@live.com',
+                    credential: 'muazkh'
+                },
+                {
+                    urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
+                    username: 'webrtc',
+                    credential: 'webrtc'
                 }
-            ]
+            ],
+            iceCandidatePoolSize: 10
         };
         
         // Callbacks
@@ -35,44 +51,49 @@ class PeerNetwork {
         this.onPlayerJoin = onPlayerJoin;
         this.onPlayerLeave = onPlayerLeave;
         this.onGameStart = onGameStart;
+        
+        // Status callback for on-screen debug
+        this.onStatus = null;
     }
 
-    // Host a new game room
+    log(msg) {
+        console.log(msg);
+        if (this.onStatus) this.onStatus(msg);
+    }
+
     hostRoom(playerName) {
         return new Promise((resolve, reject) => {
-            // Generate a simple 5-character room code
             this.roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
-            
             const fullPeerId = 'alg-domino-' + this.roomId;
             
+            this.log('⏳ Connecting to signaling server...');
+            
             this.peer = new Peer(fullPeerId, {
-                debug: 1,
+                debug: 2,
                 config: this.iceConfig
             });
             
             this.peer.on('open', (id) => {
-                console.log('[Host] PeerJS connected with id:', id);
+                this.log('✅ Signaling server connected!');
+                this.log('🏠 Room created: ' + this.roomId);
                 this.isHost = true;
                 this.playerId = id;
                 this.players = [{ id: this.playerId, name: playerName, isHost: true }];
-                
                 this.setupHostListeners();
                 resolve(this.roomId);
             });
 
             this.peer.on('error', (err) => {
-                console.error("PeerJS Host Error:", err);
+                this.log('❌ Host error: ' + err.type + ' - ' + err.message);
                 if (err.type === 'unavailable-id') {
-                    // Room code collision, try again with new code
-                    this.roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
                     reject(new Error('Room code taken, please try again.'));
                 } else {
-                    reject(err);
+                    reject(new Error(err.type + ': ' + err.message));
                 }
             });
 
             this.peer.on('disconnected', () => {
-                console.log('[Host] Disconnected from signaling server, attempting reconnect...');
+                this.log('⚠️ Lost signaling server, reconnecting...');
                 if (this.peer && !this.peer.destroyed) {
                     this.peer.reconnect();
                 }
@@ -80,45 +101,47 @@ class PeerNetwork {
         });
     }
 
-    // Join an existing room
     joinRoom(roomId, playerName) {
         return new Promise((resolve, reject) => {
             this.roomId = roomId.toUpperCase();
             const hostPeerId = 'alg-domino-' + this.roomId;
-            
             let settled = false;
             
+            this.log('⏳ Connecting to signaling server...');
+            
             this.peer = new Peer(undefined, {
-                debug: 1,
+                debug: 2,
                 config: this.iceConfig
             });
             
             this.peer.on('open', (id) => {
-                console.log('[Client] PeerJS connected with id:', id);
+                this.log('✅ Signaling server connected!');
+                this.log('🔍 Looking for room ' + this.roomId + '...');
                 this.isHost = false;
                 this.playerId = id;
                 
-                // Connect to host
                 const conn = this.peer.connect(hostPeerId, {
                     metadata: { name: playerName },
-                    reliable: true
+                    reliable: true,
+                    serialization: 'json'
                 });
 
-                // Timeout: if connection doesn't open in 10 seconds, fail
+                this.log('⏳ Connecting to host (ICE negotiation)...');
+
                 const timeout = setTimeout(() => {
                     if (!settled) {
                         settled = true;
-                        console.error('[Client] Connection to host timed out');
-                        conn.close();
-                        reject(new Error('Connection timed out. Check the room code and try again.'));
+                        this.log('❌ Connection timed out after 15s');
+                        try { conn.close(); } catch(e) {}
+                        reject(new Error('Connection timed out. The host may be behind a firewall.'));
                     }
-                }, 10000);
+                }, 15000);
                 
                 conn.on('open', () => {
                     if (settled) return;
                     settled = true;
                     clearTimeout(timeout);
-                    console.log('[Client] Connected to host!');
+                    this.log('✅ Connected to host!');
                     this.connections = [conn];
                     this.setupClientListeners(conn);
                     resolve(this.roomId);
@@ -128,29 +151,38 @@ class PeerNetwork {
                     if (settled) return;
                     settled = true;
                     clearTimeout(timeout);
-                    console.error('[Client] Connection error:', err);
-                    reject(err);
+                    this.log('❌ Connection error: ' + (err.message || err));
+                    reject(new Error('Connection failed: ' + (err.message || err)));
                 });
+
+                // Monitor ICE connection state
+                if (conn.peerConnection) {
+                    conn.peerConnection.oniceconnectionstatechange = () => {
+                        this.log('🔄 ICE: ' + conn.peerConnection.iceConnectionState);
+                    };
+                    conn.peerConnection.onicegatheringstatechange = () => {
+                        this.log('🔄 ICE gather: ' + conn.peerConnection.iceGatheringState);
+                    };
+                }
             });
             
             this.peer.on('error', (err) => {
-                console.error("PeerJS Client Error:", err);
+                this.log('❌ PeerJS error: ' + err.type + ' - ' + err.message);
                 if (!settled) {
                     settled = true;
                     if (err.type === 'peer-unavailable') {
-                        reject(new Error('Room not found. Check the code and try again.'));
+                        reject(new Error('Room "' + this.roomId + '" not found. Check the code.'));
                     } else {
-                        reject(err);
+                        reject(new Error(err.type + ': ' + err.message));
                     }
                 }
             });
         });
     }
 
-    // --- Host Specific Logic ---
     setupHostListeners() {
         this.peer.on('connection', (conn) => {
-            console.log('[Host] Incoming connection from:', conn.peer);
+            this.log('📥 Incoming connection from: ' + conn.peer);
             
             if (this.players.length >= 4) {
                 conn.on('open', () => {
@@ -161,16 +193,14 @@ class PeerNetwork {
             }
 
             conn.on('open', () => {
-                console.log('[Host] Connection opened with:', conn.peer, 'metadata:', conn.metadata);
                 const playerName = (conn.metadata && conn.metadata.name) || 'Player';
+                this.log('✅ ' + playerName + ' joined!');
                 this.connections.push(conn);
                 
                 const newPlayer = { id: conn.peer, name: playerName, isHost: false };
                 this.players.push(newPlayer);
                 
                 this.onPlayerJoin(this.players);
-                
-                // Broadcast updated player list to everyone
                 this.broadcast({ type: 'PLAYER_LIST', players: this.players });
 
                 conn.on('data', (data) => {
@@ -178,7 +208,7 @@ class PeerNetwork {
                 });
 
                 conn.on('close', () => {
-                    console.log('[Host] Connection closed with:', conn.peer);
+                    this.log('👋 ' + playerName + ' disconnected');
                     this.connections = this.connections.filter(c => c.peer !== conn.peer);
                     this.players = this.players.filter(p => p.id !== conn.peer);
                     this.onPlayerLeave(this.players);
@@ -188,18 +218,16 @@ class PeerNetwork {
         });
     }
 
-    // --- Client Specific Logic ---
     setupClientListeners(conn) {
         conn.on('data', (data) => {
             this.handleData(data, conn.peer);
         });
 
         conn.on('close', () => {
-            console.log("[Client] Connection to host lost.");
+            this.log('⚠️ Connection to host lost.');
         });
     }
 
-    // --- Shared Logic ---
     handleData(data, senderId) {
         switch (data.type) {
             case 'PLAYER_LIST':
@@ -223,13 +251,11 @@ class PeerNetwork {
         }
     }
 
-    // Host sends complete state to all clients
     broadcastState(state) {
         if (!this.isHost) return;
         this.broadcast({ type: 'STATE_UPDATE', state: state });
     }
     
-    // Host starts game
     broadcastStart(state) {
         if (!this.isHost) return;
         this.broadcast({ type: 'GAME_START', state: state });
@@ -243,7 +269,6 @@ class PeerNetwork {
         });
     }
 
-    // Client sends action to Host
     sendAction(action) {
         if (this.isHost) {
             this.onStateUpdate({ action: action, playerId: this.playerId });
