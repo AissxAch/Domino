@@ -8,10 +8,10 @@ class PeerNetwork {
         this.players = [];
         
         // STUN/TURN ICE Servers Configuration
-        this.meteredAppName = "aissxdev";
-        this.meteredApiKey = "3d53304bd4a433092bcf89d91b86883cd655";
+        this.meteredAppName = "";
+        this.meteredApiKey = "";
         
-        // Static TURN credentials fallback (if you copy Username & Password from Metered dashboard)
+        // Static TURN credentials fallback
         this.turnUsername = "";
         this.turnPassword = "";
 
