@@ -7,6 +7,29 @@ class PeerNetwork {
         this.playerId = null; // My peer ID
         this.players = []; // Array of { id, name, isHost }
         
+        // ICE servers config: STUN + free TURN relays for mobile data NAT traversal
+        this.iceConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                {
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
+            ]
+        };
+        
         // Callbacks
         this.onStateUpdate = onStateUpdate;
         this.onPlayerJoin = onPlayerJoin;
@@ -23,7 +46,8 @@ class PeerNetwork {
             const fullPeerId = 'alg-domino-' + this.roomId;
             
             this.peer = new Peer(fullPeerId, {
-                debug: 1 // Log errors only
+                debug: 1,
+                config: this.iceConfig
             });
             
             this.peer.on('open', (id) => {
@@ -65,7 +89,8 @@ class PeerNetwork {
             let settled = false;
             
             this.peer = new Peer(undefined, {
-                debug: 1
+                debug: 1,
+                config: this.iceConfig
             });
             
             this.peer.on('open', (id) => {
