@@ -7,22 +7,39 @@ class PeerNetwork {
         this.playerId = null;
         this.players = [];
         
-        // STUN/TURN ICE Servers Configuration (read from env.js if present)
+        // STUN/TURN ICE Servers Configuration
         const env = window.ENV || {};
-        this.meteredAppName = env.METERED_APP_NAME || "";
+        this.meteredAppName = env.METERED_APP_NAME || "aissxdev";
         this.meteredApiKey = env.METERED_API_KEY || "";
-        this.turnUsername = env.TURN_USERNAME || "";
-        this.turnPassword = env.TURN_PASSWORD || "";
+        this.turnUsername = env.TURN_USERNAME || "1a08e4bc40b18c064dee67dd";
+        this.turnPassword = env.TURN_PASSWORD || "MDLSlTi/Ry3tj6+D";
 
         this.iceConfig = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
                 { urls: 'stun:stun.cloudflare.com:3478' },
-                { urls: 'stun:stun.services.mozilla.com' }
+                { urls: 'stun:stun.relay.metered.ca:80' },
+                {
+                    urls: 'turn:global.relay.metered.ca:80',
+                    username: this.turnUsername,
+                    credential: this.turnPassword
+                },
+                {
+                    urls: 'turn:global.relay.metered.ca:443',
+                    username: this.turnUsername,
+                    credential: this.turnPassword
+                },
+                {
+                    urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+                    username: this.turnUsername,
+                    credential: this.turnPassword
+                },
+                {
+                    urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+                    username: this.turnUsername,
+                    credential: this.turnPassword
+                }
             ],
             iceCandidatePoolSize: 10
         };
