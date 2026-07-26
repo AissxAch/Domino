@@ -20,6 +20,13 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Outfit', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
 }
 
 body {
@@ -30,215 +37,240 @@ body {
         radial-gradient(at 100% 0%, hsla(339,49%,30%,0.2) 0, transparent 50%);
     background-attachment: fixed;
     color: var(--text-color);
-    overflow: hidden;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
 #app {
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     position: relative;
 }
 
-/* Typography & General */
-h1 { font-size: 3.5rem; font-weight: 800; margin-bottom: 0.5rem; background: linear-gradient(to right, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-h2 { font-size: 2.5rem; margin-bottom: 1.5rem; }
-h3 { font-size: 1.5rem; margin-bottom: 1rem; }
-.subtitle { color: #94a3b8; font-size: 1.2rem; margin-bottom: 2rem; }
+/* ========= UTILITIES ========= */
+.hidden { display: none !important; }
 
-/* Glassmorphism Panels */
+/* ========= TYPOGRAPHY ========= */
+h1 { 
+    font-size: 3rem; 
+    font-weight: 800; 
+    margin-bottom: 0.5rem; 
+    background: linear-gradient(135deg, #60a5fa, #a78bfa); 
+    -webkit-background-clip: text; 
+    -webkit-text-fill-color: transparent; 
+}
+h2 { font-size: 2rem; margin-bottom: 1rem; }
+h3 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+.subtitle { color: #94a3b8; font-size: 1.1rem; margin-bottom: 1.5rem; }
+
+/* ========= GLASSMORPHISM PANELS ========= */
 .glass-panel {
     background: var(--panel-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--panel-border);
     border-radius: 24px;
-    padding: 3rem;
+    padding: 2.5rem;
     box-shadow: var(--glass-shadow);
     text-align: center;
-    max-width: 500px;
+    max-width: 440px;
     width: 90%;
     animation: fadeIn 0.5s ease-out;
 }
 
-/* Buttons & Inputs */
+/* ========= BUTTONS & INPUTS ========= */
 button {
-    padding: 0.8rem 1.5rem;
+    padding: 0.75rem 1.2rem;
     border-radius: 12px;
     border: none;
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     width: 100%;
 }
-button:active { transform: scale(0.98); }
+button:active { transform: scale(0.97); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .primary-btn { background: var(--primary-color); color: white; box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39); }
-.primary-btn:hover { background: var(--primary-hover); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.23); }
+.primary-btn:hover:not(:disabled) { background: var(--primary-hover); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.23); }
 
 .secondary-btn { background: var(--secondary-color); color: white; }
-.secondary-btn:hover { background: var(--secondary-hover); }
+.secondary-btn:hover:not(:disabled) { background: var(--secondary-hover); }
 
 .danger-btn { background: var(--danger-color); color: white; }
-.danger-btn:hover { background: var(--danger-hover); }
+.danger-btn:hover:not(:disabled) { background: var(--danger-hover); }
 
 .warning-btn { background: var(--warning-color); color: white; }
-.warning-btn:hover { background: var(--warning-hover); }
+.warning-btn:hover:not(:disabled) { background: var(--warning-hover); }
 
-.small-btn { padding: 0.5rem 1rem; font-size: 0.9rem; width: auto; }
+.small-btn { padding: 0.4rem 0.8rem; font-size: 0.85rem; width: auto; }
 
 input[type="text"] {
     width: 100%;
-    padding: 1rem;
+    padding: 0.85rem 1rem;
     border-radius: 12px;
     border: 1px solid var(--panel-border);
     background: rgba(15, 23, 42, 0.6);
     color: white;
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
     outline: none;
     transition: border 0.3s ease;
 }
 input[type="text"]:focus { border-color: var(--primary-color); }
 
-/* Screens */
+/* ========= SCREENS ========= */
 .screen {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: opacity 0.4s ease, visibility 0.4s ease;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
 }
-.hidden { display: none !important; }
-.screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-.screen.active { opacity: 1; visibility: visible; }
+.screen.active { opacity: 1; pointer-events: auto; }
 
-/* Menu Actions */
-.menu-actions { display: flex; flex-direction: column; gap: 1.5rem; }
-.divider { display: flex; align-items: center; color: var(--secondary-color); font-size: 0.9rem; }
+/* ========= MENU ========= */
+.menu-actions { display: flex; flex-direction: column; gap: 1rem; }
+.divider { display: flex; align-items: center; color: var(--secondary-color); font-size: 0.85rem; }
 .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid var(--panel-border); margin: 0 10px; }
 
-/* Lobby Screen Specifics */
+/* ========= LOBBY ========= */
 .room-code-display {
     background: rgba(0,0,0,0.2);
-    padding: 1.5rem;
+    padding: 1rem;
     border-radius: 16px;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     border: 1px dashed var(--secondary-color);
 }
-.room-code-display h3 { font-size: 2.5rem; letter-spacing: 4px; margin: 0.5rem 0; color: #fbbf24; }
-.players-list { text-align: left; margin-bottom: 2rem; }
+.room-code-display h3 { font-size: 2.2rem; letter-spacing: 4px; margin: 0.3rem 0; color: #fbbf24; }
+.players-list { text-align: left; margin-bottom: 1.5rem; }
 #lobby-players { list-style: none; }
 #lobby-players li {
-    padding: 0.8rem 1rem;
+    padding: 0.6rem 0.8rem;
     background: rgba(255,255,255,0.05);
     border-radius: 8px;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: 0.95rem;
 }
-.lobby-actions { display: flex; gap: 1rem; }
+.lobby-actions { display: flex; gap: 0.75rem; }
 
-/* Game Screen Layout */
+/* ========= GAME SCREEN ========= */
 #game-screen {
     display: flex;
     flex-direction: column;
-    padding: 1rem;
-    justify-content: space-between;
+    padding: 0.5rem;
 }
 
-.game-middle {
-    display: flex;
-    flex: 1;
-    justify-content: space-between;
-    align-items: stretch;
-    margin: 1rem 0;
-    min-height: 0; /* Important for overflow */
-}
-
-/* Player Info */
-.player-info {
-    background: rgba(15, 23, 42, 0.8);
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
+/* -- Top Opponent -- */
+.top-opponent {
     display: flex;
     flex-direction: column;
     align-items: center;
-    border: 1px solid var(--panel-border);
-    font-size: 0.9rem;
-    z-index: 10;
+    gap: 4px;
+    padding: 4px 0;
+    min-height: 60px;
 }
-.player-name { font-weight: 600; color: #93c5fd; }
-.player-score { font-size: 0.8rem; color: #cbd5e1; }
 
-.opponent { display: flex; align-items: center; justify-content: center; position: relative; }
-.top-opponent { height: 80px; flex-direction: column; }
-.left-opponent { width: 100px; flex-direction: column; }
-.right-opponent { width: 100px; flex-direction: column; }
-.local-player { height: 160px; display: flex; flex-direction: column; align-items: center; position: relative; }
-
-/* Hands Containers */
-.opponent-hand { display: flex; gap: -15px; } /* overlap slightly */
-.vertical-hand { flex-direction: column; }
-.local-hand-container {
+/* -- Middle Section (left opponent + board + right opponent) -- */
+.game-middle {
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    background: rgba(255,255,255,0.05);
-    padding: 1rem 2rem;
-    border-radius: 24px 24px 0 0;
-    border: 1px solid var(--panel-border);
-    border-bottom: none;
-    width: 100%;
-    max-width: 800px;
-}
-.local-hand {
-    display: flex;
-    gap: 10px;
     flex: 1;
-    justify-content: center;
-    min-height: 100px;
+    min-height: 0;
+    gap: 4px;
 }
 
-/* Board */
+/* -- Side Opponents -- */
+.left-opponent,
+.right-opponent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 70px;
+    flex-shrink: 0;
+    justify-content: center;
+}
+
+/* -- Board -- */
 .board-container {
     flex: 1;
-    background: rgba(30, 41, 59, 0.4);
-    border-radius: 24px;
+    background: rgba(20, 30, 48, 0.5);
+    border-radius: 16px;
     border: 1px solid var(--panel-border);
-    margin: 0 1rem;
     position: relative;
-    overflow: hidden; /* We'll handle panning/zooming in JS if needed */
+    overflow: auto;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 .board {
-    position: absolute;
-    /* Transformation handled by JS to keep centered */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: max-content;
+    padding: 12px;
 }
 
-/* Controls */
-.game-controls {
-    position: absolute;
-    top: -50px;
+/* -- Player Info Badge -- */
+.player-info {
+    background: rgba(15, 23, 42, 0.85);
+    padding: 3px 8px;
+    border-radius: 12px;
     display: flex;
-    gap: 1rem;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid var(--panel-border);
+    font-size: 0.7rem;
+    white-space: nowrap;
+    z-index: 10;
+}
+.player-name { font-weight: 600; color: #93c5fd; font-size: 0.75rem; }
+.player-score { font-size: 0.65rem; color: #cbd5e1; }
+
+.local-info {
+    font-size: 0.85rem;
+}
+.local-info .player-name { font-size: 0.9rem; }
+.local-info .player-score { font-size: 0.75rem; }
+
+/* -- Opponent Hands -- */
+.opponent-hand {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+}
+.vertical-hand {
+    flex-direction: column;
+    align-items: center;
+}
+
+/* -- Local Player -- */
+.local-player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 0 0;
+    gap: 4px;
+}
+.game-controls {
+    display: flex;
+    gap: 0.5rem;
     align-items: center;
 }
 .turn-indicator {
     background: var(--panel-bg);
-    padding: 0.5rem 1.5rem;
+    padding: 0.3rem 1rem;
     border-radius: 20px;
     border: 1px solid var(--primary-color);
     font-weight: 600;
-    box-shadow: 0 0 10px var(--primary-color);
+    font-size: 0.85rem;
+    box-shadow: 0 0 8px var(--primary-color);
     transition: all 0.3s;
 }
 .turn-indicator.active-turn {
@@ -247,69 +279,143 @@ input[type="text"]:focus { border-color: var(--primary-color); }
     animation: pulse 2s infinite;
 }
 
-/* Modals */
+.local-hand-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255,255,255,0.05);
+    padding: 0.5rem 0.75rem;
+    border-radius: 16px 16px 0 0;
+    border: 1px solid var(--panel-border);
+    border-bottom: none;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+.local-hand {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    justify-content: center;
+    min-height: 80px;
+    flex-wrap: nowrap;
+}
+
+/* ========= MODALS ========= */
 .modal {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.7);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 100;
 }
+.modal.hidden { display: none !important; }
 .modal-content {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
+    max-width: 400px;
+    width: 90%;
 }
 #score-board {
-    background: rgba(0,0,0,0.2);
-    padding: 1rem;
+    background: rgba(0,0,0,0.25);
+    padding: 0.75rem;
     border-radius: 12px;
     text-align: left;
-    margin: 1rem 0;
+    font-size: 0.95rem;
 }
 
-/* Toasts */
+/* ========= TOASTS ========= */
 #toast-container {
-    position: absolute;
-    top: 20px;
-    right: 20px;
+    position: fixed;
+    top: 12px;
+    right: 12px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     z-index: 200;
+    pointer-events: none;
 }
 .toast {
     background: var(--panel-bg);
     backdrop-filter: blur(8px);
     border-left: 4px solid var(--primary-color);
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     animation: slideInRight 0.3s ease-out forwards;
+    font-size: 0.9rem;
+    pointer-events: auto;
 }
 
-/* Status Log */
+/* ========= STATUS LOG ========= */
 .status-log {
-    margin-top: 1rem;
-    padding: 0.75rem;
+    margin-top: 0.75rem;
+    padding: 0.6rem;
     background: rgba(0, 0, 0, 0.4);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     font-family: monospace;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: #38bdf8;
     text-align: left;
-    max-height: 120px;
+    max-height: 100px;
     overflow-y: auto;
     word-break: break-all;
 }
-.status-log.hidden {
-    display: none;
+
+/* ========= SIDE CHOOSER MODAL ========= */
+.side-chooser-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 150;
+}
+.side-chooser {
+    background: var(--panel-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 200px;
+}
+.side-chooser h3 { margin-bottom: 0.25rem; font-size: 1.1rem; }
+.side-chooser-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+.side-chooser-buttons button {
+    flex: 1;
 }
 
-/* Animations */
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
-@keyframes slideInRight { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+/* ========= ANIMATIONS ========= */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); } 70% { box-shadow: 0 0 0 12px rgba(59, 130, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ========= MOBILE RESPONSIVE ========= */
+@media (max-width: 600px) {
+    h1 { font-size: 2.2rem; }
+    h2 { font-size: 1.5rem; }
+    .glass-panel { padding: 1.5rem; border-radius: 20px; }
+    
+    #game-screen { padding: 4px; }
+    
+    .left-opponent, .right-opponent { width: 50px; }
+    
+    .local-hand { gap: 4px; }
+    .local-hand-container { padding: 0.4rem; }
+    
+    .turn-indicator { font-size: 0.75rem; padding: 0.25rem 0.6rem; }
+    
+    .board { padding: 8px; }
+}

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Algerian Dominoes Online</title>
     
     <!-- PeerJS CDN -->
@@ -23,15 +23,15 @@
         <div id="main-menu" class="screen active">
             <div class="glass-panel">
                 <h1>Dominoes</h1>
-                <p class="subtitle">Algerian Rules • Multiplayer</p>
+                <p class="subtitle">Algerian Rules • Online</p>
                 
                 <div class="menu-actions">
                     <input type="text" id="player-name" placeholder="Your Name" autocomplete="off" maxlength="15">
-                    <button id="btn-host" class="primary-btn">Host Game</button>
+                    <button id="btn-host" class="primary-btn">🏠 Host Game</button>
                     <div class="divider"><span>OR</span></div>
                     <div class="join-container">
-                        <input type="text" id="join-code" placeholder="Enter Room Code" autocomplete="off">
-                        <button id="btn-join" class="secondary-btn">Join Game</button>
+                        <input type="text" id="join-code" placeholder="Enter Room Code" autocomplete="off" style="text-transform: uppercase;">
+                        <button id="btn-join" class="secondary-btn">🔗 Join Game</button>
                     </div>
                 </div>
                 <div id="status-log" class="status-log hidden"></div>
@@ -39,71 +39,66 @@
         </div>
 
         <!-- Lobby Screen -->
-        <div id="lobby-screen" class="screen hidden">
+        <div id="lobby-screen" class="screen">
             <div class="glass-panel">
                 <h2>Game Lobby</h2>
                 <div class="room-code-display">
                     <p>Room Code:</p>
                     <h3 id="display-room-code">----</h3>
-                    <button id="btn-copy-code" class="small-btn">Copy</button>
+                    <button id="btn-copy-code" class="small-btn">📋 Copy</button>
                 </div>
 
                 <div class="players-list">
                     <h3>Players (<span id="player-count">1</span>/4)</h3>
-                    <ul id="lobby-players">
-                        <!-- Player items populated by JS -->
-                    </ul>
+                    <ul id="lobby-players"></ul>
                 </div>
                 
                 <div class="lobby-actions">
-                    <button id="btn-start-game" class="primary-btn hidden">Start Game</button>
-                    <button id="btn-leave-lobby" class="danger-btn">Leave</button>
+                    <button id="btn-start-game" class="primary-btn hidden">▶ Start Game</button>
+                    <button id="btn-leave-lobby" class="danger-btn">✖ Leave</button>
                 </div>
             </div>
         </div>
 
         <!-- Game Screen -->
-        <div id="game-screen" class="screen hidden">
-            <!-- Top section (Opponent 1 or Team 2) -->
-            <div class="opponent top-opponent">
+        <div id="game-screen" class="screen">
+            <!-- Top Opponent -->
+            <div class="top-opponent" id="area-top" style="display:none;">
                 <div class="player-info" id="player-top-info">
-                    <span class="player-name">Waiting...</span>
-                    <span class="player-score">Score: 0</span>
+                    <span class="player-name">---</span>
+                    <span class="player-score">0</span>
                 </div>
                 <div class="opponent-hand" id="hand-top"></div>
             </div>
 
-            <!-- Middle Section (Board and Side Opponents) -->
+            <!-- Middle: Left + Board + Right -->
             <div class="game-middle">
-                <!-- Left Opponent -->
-                <div class="opponent left-opponent">
+                <div class="left-opponent" id="area-left" style="display:none;">
                     <div class="player-info" id="player-left-info">
-                        <span class="player-name">Waiting...</span>
+                        <span class="player-name">---</span>
                         <span class="player-score">0</span>
                     </div>
                     <div class="opponent-hand vertical-hand" id="hand-left"></div>
                 </div>
 
-                <!-- Playing Board -->
                 <div class="board-container">
                     <div id="board" class="board"></div>
                 </div>
 
-                <!-- Right Opponent -->
-                <div class="opponent right-opponent">
+                <div class="right-opponent" id="area-right" style="display:none;">
                     <div class="player-info" id="player-right-info">
-                        <span class="player-name">Waiting...</span>
+                        <span class="player-name">---</span>
                         <span class="player-score">0</span>
                     </div>
                     <div class="opponent-hand vertical-hand" id="hand-right"></div>
                 </div>
             </div>
 
-            <!-- Bottom Section (Local Player) -->
+            <!-- Local Player -->
             <div class="local-player">
                 <div class="game-controls">
-                    <button id="btn-pass" class="warning-btn hidden">Pass Turn</button>
                     <div id="turn-indicator" class="turn-indicator">Waiting...</div>
+                    <button id="btn-pass" class="warning-btn hidden" style="width:auto; padding: 0.3rem 1rem; font-size: 0.8rem;">Pass</button>
                 </div>
                 <div class="local-hand-container">
                     <div class="player-info local-info" id="player-local-info">
