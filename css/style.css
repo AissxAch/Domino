@@ -114,6 +114,7 @@ input[type="text"]:focus { border-color: var(--primary-color); }
     align-items: center;
     transition: opacity 0.4s ease, visibility 0.4s ease;
 }
+.hidden { display: none !important; }
 .screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 .screen.active { opacity: 1; visibility: visible; }
 

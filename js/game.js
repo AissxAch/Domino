@@ -26,6 +26,7 @@ class DominoGame {
             isTeam2: networkPlayers.length === 4 ? (index % 2 !== 0) : false
         }));
         this.isTeamGame = this.players.length === 4;
+        this.roundResult = null;
     }
 
     startRound(winnerIndex = -1) {
@@ -34,6 +35,7 @@ class DominoGame {
         this.leftEnd = null;
         this.rightEnd = null;
         this.consecutivePasses = 0;
+        this.roundResult = null;
         
         // Generate and shuffle deck
         this.deck = [];
