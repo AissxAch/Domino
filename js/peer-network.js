@@ -20,13 +20,14 @@ class PeerNetwork {
             // Generate a simple 5-character room code
             this.roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
             
-            // In PeerJS, the ID we pass is the room code. 
-            // To ensure uniqueness globally, we might prefix it.
             const fullPeerId = 'alg-domino-' + this.roomId;
             
-            this.peer = new Peer(fullPeerId);
+            this.peer = new Peer(fullPeerId, {
+                debug: 1 // Log errors only
+            });
             
             this.peer.on('open', (id) => {
+                console.log('[Host] PeerJS connected with id:', id);
                 this.isHost = true;
                 this.playerId = id;
                 this.players = [{ id: this.playerId, name: playerName, isHost: true }];
@@ -36,8 +37,21 @@ class PeerNetwork {
             });
 
             this.peer.on('error', (err) => {
-                console.error("PeerJS Error:", err);
-                reject(err);
+                console.error("PeerJS Host Error:", err);
+                if (err.type === 'unavailable-id') {
+                    // Room code collision, try again with new code
+                    this.roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
+                    reject(new Error('Room code taken, please try again.'));
+                } else {
+                    reject(err);
+                }
+            });
+
+            this.peer.on('disconnected', () => {
+                console.log('[Host] Disconnected from signaling server, attempting reconnect...');
+                if (this.peer && !this.peer.destroyed) {
+                    this.peer.reconnect();
+                }
             });
         });
     }
@@ -48,31 +62,62 @@ class PeerNetwork {
             this.roomId = roomId.toUpperCase();
             const hostPeerId = 'alg-domino-' + this.roomId;
             
-            this.peer = new Peer(); // Let PeerJS assign a random ID for client
+            let settled = false;
+            
+            this.peer = new Peer(undefined, {
+                debug: 1
+            });
             
             this.peer.on('open', (id) => {
+                console.log('[Client] PeerJS connected with id:', id);
                 this.isHost = false;
                 this.playerId = id;
                 
                 // Connect to host
                 const conn = this.peer.connect(hostPeerId, {
-                    metadata: { name: playerName }
+                    metadata: { name: playerName },
+                    reliable: true
                 });
+
+                // Timeout: if connection doesn't open in 10 seconds, fail
+                const timeout = setTimeout(() => {
+                    if (!settled) {
+                        settled = true;
+                        console.error('[Client] Connection to host timed out');
+                        conn.close();
+                        reject(new Error('Connection timed out. Check the room code and try again.'));
+                    }
+                }, 10000);
                 
                 conn.on('open', () => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timeout);
+                    console.log('[Client] Connected to host!');
                     this.connections = [conn];
                     this.setupClientListeners(conn);
                     resolve(this.roomId);
                 });
 
                 conn.on('error', (err) => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timeout);
+                    console.error('[Client] Connection error:', err);
                     reject(err);
                 });
             });
             
             this.peer.on('error', (err) => {
-                console.error("PeerJS Error:", err);
-                reject(err);
+                console.error("PeerJS Client Error:", err);
+                if (!settled) {
+                    settled = true;
+                    if (err.type === 'peer-unavailable') {
+                        reject(new Error('Room not found. Check the code and try again.'));
+                    } else {
+                        reject(err);
+                    }
+                }
             });
         });
     }
@@ -80,6 +125,8 @@ class PeerNetwork {
     // --- Host Specific Logic ---
     setupHostListeners() {
         this.peer.on('connection', (conn) => {
+            console.log('[Host] Incoming connection from:', conn.peer);
+            
             if (this.players.length >= 4) {
                 conn.on('open', () => {
                     conn.send({ type: 'ERROR', message: 'Room is full' });
@@ -89,7 +136,8 @@ class PeerNetwork {
             }
 
             conn.on('open', () => {
-                const playerName = conn.metadata.name;
+                console.log('[Host] Connection opened with:', conn.peer, 'metadata:', conn.metadata);
+                const playerName = (conn.metadata && conn.metadata.name) || 'Player';
                 this.connections.push(conn);
                 
                 const newPlayer = { id: conn.peer, name: playerName, isHost: false };
@@ -105,6 +153,7 @@ class PeerNetwork {
                 });
 
                 conn.on('close', () => {
+                    console.log('[Host] Connection closed with:', conn.peer);
                     this.connections = this.connections.filter(c => c.peer !== conn.peer);
                     this.players = this.players.filter(p => p.id !== conn.peer);
                     this.onPlayerLeave(this.players);
@@ -121,8 +170,7 @@ class PeerNetwork {
         });
 
         conn.on('close', () => {
-            console.log("Connection to host lost.");
-            // Handle disconnect UI
+            console.log("[Client] Connection to host lost.");
         });
     }
 
@@ -140,7 +188,6 @@ class PeerNetwork {
                 this.onStateUpdate(data.state);
                 break;
             case 'PLAYER_ACTION':
-                // Only Host receives PLAYER_ACTION, updates game state, and broadcasts STATE_UPDATE
                 if (this.isHost) {
                     this.onStateUpdate({ action: data.action, playerId: senderId });
                 }
@@ -174,10 +221,8 @@ class PeerNetwork {
     // Client sends action to Host
     sendAction(action) {
         if (this.isHost) {
-            // Host applies action directly
             this.onStateUpdate({ action: action, playerId: this.playerId });
         } else {
-            // Client sends to host (connections[0] is host)
             if (this.connections[0] && this.connections[0].open) {
                 this.connections[0].send({ type: 'PLAYER_ACTION', action: action });
             }
@@ -188,6 +233,7 @@ class PeerNetwork {
         if (this.peer) {
             this.peer.destroy();
         }
+        this.peer = null;
         this.connections = [];
         this.players = [];
         this.roomId = null;

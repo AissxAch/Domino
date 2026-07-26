@@ -40,6 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let game = null;
     let localPlayerId = null;
     let localPlayerName = "Player " + Math.floor(Math.random() * 1000);
+
+    function getPlayerName() {
+        const nameInput = document.getElementById('player-name');
+        const name = nameInput ? nameInput.value.trim() : '';
+        return name || localPlayerName; // fallback to random name
+    }
     let currentState = null;
 
     // --- Core Functions ---
@@ -65,13 +71,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Network Callbacks ---
     const onStateUpdate = (state) => {
-        if (network.isHost && state.action) {
-            // Process action if host
+        if (network && network.isHost && state.action) {
+            // Host processes incoming player action
             game.processAction(state);
-            network.broadcastState(game.getState());
-            renderGame(game.getState());
-        } else if (!network.isHost && !state.action) {
-            // Receive state if client
+            const newState = game.getState();
+            network.broadcastState(newState);
+            currentState = newState;
+            renderGame(newState);
+        } else if (network && !network.isHost && !state.action) {
+            // Client receives full state from host
             currentState = state;
             renderGame(state);
         }
@@ -82,12 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
         lobby.playersList.innerHTML = '';
         players.forEach(p => {
             const li = document.createElement('li');
-            li.innerHTML = `<span>${p.name} ${p.id === network.playerId ? '(You)' : ''}</span> 
+            const isMe = network && p.id === network.playerId;
+            li.innerHTML = `<span>${p.name} ${isMe ? '(You)' : ''}</span> 
                             <span>${p.isHost ? '👑 Host' : ''}</span>`;
             lobby.playersList.appendChild(li);
         });
 
-        if (network.isHost && players.length >= 2) {
+        if (network && network.isHost && players.length >= 2) {
             buttons.startGame.classList.remove('hidden');
         } else {
             buttons.startGame.classList.add('hidden');
@@ -106,25 +115,32 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Initialization ---
-    function initNetwork() {
-        if (!network) {
-            network = new PeerNetwork(onStateUpdate, onPlayerJoin, onPlayerLeave, onGameStart);
+    function createNetwork() {
+        // Always create a fresh network instance
+        if (network) {
+            network.disconnect();
         }
+        network = new PeerNetwork(onStateUpdate, onPlayerJoin, onPlayerLeave, onGameStart);
     }
 
     // --- Event Listeners ---
     buttons.host.addEventListener('click', async () => {
         buttons.host.disabled = true;
         buttons.host.innerText = "Hosting...";
-        initNetwork();
+        createNetwork();
         try {
+            localPlayerName = getPlayerName();
             const code = await network.hostRoom(localPlayerName);
             localPlayerId = network.playerId;
             game = new DominoGame(); // Only host runs the game engine
             lobby.codeDisplay.innerText = code;
             switchScreen('lobby');
+            // Update lobby with host as first player
+            onPlayerJoin(network.players);
         } catch (e) {
-            alert("Failed to host: " + e.message);
+            alert("Failed to host: " + (e.message || e));
+            network.disconnect();
+            network = null;
         } finally {
             buttons.host.disabled = false;
             buttons.host.innerText = "Host Game";
@@ -137,15 +153,19 @@ document.addEventListener('DOMContentLoaded', () => {
         
         buttons.join.disabled = true;
         buttons.join.innerText = "Joining...";
-        initNetwork();
+        createNetwork();
         try {
+            localPlayerName = getPlayerName();
             await network.joinRoom(code, localPlayerName);
             localPlayerId = network.playerId;
-            lobby.codeDisplay.innerText = code;
+            lobby.codeDisplay.innerText = code.toUpperCase();
             switchScreen('lobby');
         } catch (e) {
-            alert("Failed to join or room full.");
-            network.disconnect();
+            alert("Failed to join: " + (e.message || e));
+            if (network) {
+                network.disconnect();
+                network = null;
+            }
         } finally {
             buttons.join.disabled = false;
             buttons.join.innerText = "Join Game";
@@ -153,17 +173,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     buttons.copyCode.addEventListener('click', () => {
-        navigator.clipboard.writeText(lobby.codeDisplay.innerText);
-        showToast("Code copied!");
+        navigator.clipboard.writeText(lobby.codeDisplay.innerText).then(() => {
+            showToast("Code copied!");
+        }).catch(() => {
+            // Fallback: select text
+            const el = lobby.codeDisplay;
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            showToast("Select & copy the code manually");
+        });
     });
 
     buttons.leaveLobby.addEventListener('click', () => {
-        network.disconnect();
+        if (network) {
+            network.disconnect();
+            network = null;
+        }
         switchScreen('mainMenu');
     });
 
     buttons.startGame.addEventListener('click', () => {
-        if (!network.isHost) return;
+        if (!network || !network.isHost) return;
         game.initPlayers(network.players);
         const state = game.startRound();
         network.broadcastStart(state);
@@ -171,27 +204,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     buttons.nextRound.addEventListener('click', () => {
-        if (!network.isHost) return;
+        if (!network || !network.isHost) return;
         const state = game.startRound(game.roundResult.winnerIndex);
         network.broadcastState(state);
         gameUI.gameOverModal.classList.add('hidden');
+        currentState = state;
         renderGame(state);
     });
 
     buttons.backMenu.addEventListener('click', () => {
-        network.disconnect();
+        if (network) {
+            network.disconnect();
+            network = null;
+        }
         window.location.reload();
     });
 
     buttons.passTurn.addEventListener('click', () => {
-        network.sendAction({ type: 'PASS' });
+        if (network) {
+            network.sendAction({ type: 'PASS' });
+        }
     });
 
     // --- DOM Rendering Tools ---
     
-    function createDominoElement(tile, hidden = false, horizontal = false, isBoard = false) {
+    function createDominoElement(tile, hidden = false, horizontal = false) {
         const dom = document.createElement('div');
-        dom.className = `domino ${hidden ? 'hidden' : ''} ${horizontal ? 'horizontal' : ''}`;
+        dom.className = `domino${hidden ? ' hidden' : ''}${horizontal ? ' horizontal' : ''}`;
         
         if (!hidden) {
             const half1 = document.createElement('div');
@@ -220,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             5: [1, 3, 5, 7, 9],
             6: [1, 3, 4, 6, 7, 9]
         };
-        layouts[count].forEach(pos => {
+        (layouts[count] || []).forEach(pos => {
             const dot = document.createElement('div');
             dot.className = `dot p${pos}`;
             container.appendChild(dot);
@@ -229,52 +268,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Main Game Render Loop ---
     function renderGame(state) {
+        if (!state || !state.players) return;
+        
         // 1. Identify local player and opponents mapping
         const localIndex = state.players.findIndex(p => p.id === localPlayerId);
+        if (localIndex === -1) return; // Safety check
         const myPlayer = state.players[localIndex];
         
         // Setup opponent positions based on player count
         const opponents = [];
         let numPlayers = state.players.length;
-        for(let i=1; i<numPlayers; i++) {
+        for (let i = 1; i < numPlayers; i++) {
             opponents.push(state.players[(localIndex + i) % numPlayers]);
         }
 
         // 2. Render Opponent UI
-        // Clear all
         ['top', 'left', 'right'].forEach(pos => {
             document.querySelector(`.${pos}-opponent`).style.visibility = 'hidden';
         });
 
         if (numPlayers === 2) {
-            renderOpponent(opponents[0], 'top');
+            renderOpponent(opponents[0], 'top', state);
         } else if (numPlayers === 3) {
-            renderOpponent(opponents[0], 'left');
-            renderOpponent(opponents[1], 'right');
+            renderOpponent(opponents[0], 'left', state);
+            renderOpponent(opponents[1], 'right', state);
         } else if (numPlayers === 4) {
-            renderOpponent(opponents[0], 'left');
-            renderOpponent(opponents[1], 'top');
-            renderOpponent(opponents[2], 'right');
+            renderOpponent(opponents[0], 'left', state);
+            renderOpponent(opponents[1], 'top', state);
+            renderOpponent(opponents[2], 'right', state);
         }
 
         // 3. Render Local Player Info
-        document.getElementById('player-local-info').querySelector('.player-name').innerText = "You" + (myPlayer.isTeam2 ? " (Team 2)" : (state.players.length===4 ? " (Team 1)" : ""));
-        document.getElementById('player-local-info').querySelector('.player-score').innerText = `Score: ${myPlayer.score}`;
+        const localInfo = document.getElementById('player-local-info');
+        localInfo.querySelector('.player-name').innerText = "You" + (myPlayer.isTeam2 ? " (Team 2)" : (numPlayers === 4 ? " (Team 1)" : ""));
+        localInfo.querySelector('.player-score').innerText = `Score: ${myPlayer.score}`;
         
         // 4. Render Local Hand
         gameUI.localHand.innerHTML = '';
-        const isMyTurn = state.activePlayerId === localPlayerId;
+        const isMyTurn = state.activePlayerId === localPlayerId && state.gameState === 'PLAYING';
         const validMoves = isMyTurn ? getLocalValidMoves(myPlayer.hand, state.leftEnd, state.rightEnd, state.board.length) : [];
         
-        myPlayer.hand.forEach(tile => {
+        (myPlayer.hand || []).forEach(tile => {
             const domTile = createDominoElement(tile, false, false);
             
             if (isMyTurn) {
-                // Check if tile is in validMoves
                 const validOptions = validMoves.filter(v => v.tile[0] === tile[0] && v.tile[1] === tile[1]);
                 if (validOptions.length > 0) {
                     domTile.classList.add('valid-move');
-                    domTile.addEventListener('click', () => handleTileClick(tile, validOptions, state));
+                    domTile.addEventListener('click', () => handleTileClick(tile, validOptions));
                 } else {
                     domTile.classList.add('disabled');
                 }
@@ -288,7 +329,6 @@ document.addEventListener('DOMContentLoaded', () => {
         gameUI.turnIndicator.classList.toggle('active-turn', isMyTurn);
         if (isMyTurn) {
             gameUI.turnIndicator.innerText = "Your Turn!";
-            // Show Pass button if no valid moves
             if (validMoves.length === 0) {
                 buttons.passTurn.classList.remove('hidden');
             } else {
@@ -311,89 +351,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderOpponent(player, position) {
+    function renderOpponent(player, position, state) {
         const container = document.querySelector(`.${position}-opponent`);
         container.style.visibility = 'visible';
         
         const info = document.getElementById(`player-${position}-info`);
-        info.querySelector('.player-name').innerText = player.name + (player.isTeam2 ? " (T2)" : (currentState.players.length===4 ? " (T1)" : ""));
+        const numPlayers = state.players.length;
+        info.querySelector('.player-name').innerText = player.name + (player.isTeam2 ? " (T2)" : (numPlayers === 4 ? " (T1)" : ""));
         info.querySelector('.player-score').innerText = `Score: ${player.score}`;
 
         const handContainer = document.getElementById(`hand-${position}`);
         handContainer.innerHTML = '';
-        const isHorizontal = position === 'top';
-        for(let i=0; i<player.handCount; i++) {
-            handContainer.appendChild(createDominoElement([0,0], true, isHorizontal));
+        const isVerticalSlot = (position === 'left' || position === 'right');
+        for (let i = 0; i < player.handCount; i++) {
+            handContainer.appendChild(createDominoElement([0, 0], true, !isVerticalSlot));
         }
     }
 
     function renderBoard(boardTiles) {
         gameUI.board.innerHTML = '';
-        if (boardTiles.length === 0) return;
+        if (!boardTiles || boardTiles.length === 0) return;
 
-        // Start drawing from center (0,0) relative to board
-        let currentX = 0;
-        let minX = 0, maxX = 0; // For camera panning
-
-        boardTiles.forEach((bTile, index) => {
-            // bTile is { tile: [left, right], rotated: bool, isDouble: bool }
-            const isDouble = bTile.tile[0] === bTile.tile[1];
-            // In standard dominoes, doubles are placed vertically, others horizontally.
-            // A horizontal domino on board is horizontal = true. A double is horizontal = false (vertical).
-            const domTile = createDominoElement(bTile.tile, false, !isDouble, true);
-            
-            // Adjust visual layout based on rotation and chain
-            // Simplified rendering: straight line from left to right
-            
-            // To render nicely, we position absolute in center
-            domTile.style.position = 'absolute';
-            domTile.style.top = '50%';
-            
-            // Width of horizontal tile is 100, vertical is 50.
-            const w = isDouble ? 50 : 100;
-            
-            if (index === 0) {
-                // First tile at center
-                domTile.style.left = `calc(50% - ${w/2}px)`;
-                domTile.style.transform = `translateY(-50%)`;
-                currentX += (w/2);
-            } else {
-                // We append to the right side sequentially just to show them.
-                // A full 2D snake algorithm is complex. Let's make it a single line with scrolling.
-                // Wait, our game logic prepends (left) and appends (right).
-                // It's easier if we use Flexbox for the board for a simple line.
-            }
-        });
-
-        // ACTUALLY, Flexbox is infinitely easier for a straight line!
-        // Let's redo board rendering using flex layout on #board.
-        gameUI.board.style.position = 'relative';
+        // Use flexbox for a clean straight-line layout
         gameUI.board.style.display = 'flex';
         gameUI.board.style.alignItems = 'center';
         gameUI.board.style.justifyContent = 'center';
         gameUI.board.style.gap = '2px';
         gameUI.board.style.width = 'max-content';
         gameUI.board.style.margin = 'auto';
-        gameUI.board.style.transition = 'transform 0.3s ease';
+        gameUI.board.style.padding = '10px';
 
         boardTiles.forEach(bTile => {
             const isDouble = bTile.tile[0] === bTile.tile[1];
-            const domTile = createDominoElement(bTile.tile, false, !isDouble, true);
+            // Doubles render vertically (not horizontal), others render horizontally
+            const domTile = createDominoElement(bTile.tile, false, !isDouble);
             
-            // If it's a normal horizontal tile, we might need to swap the visual dots if it's rotated
+            // If rotated, swap the visual order of the halves
             if (!isDouble && bTile.rotated) {
                 domTile.style.flexDirection = 'row-reverse';
             }
             
+            // Board tiles shouldn't have hover effects
+            domTile.style.cursor = 'default';
+            
             gameUI.board.appendChild(domTile);
         });
 
-        // Add dragging to board container for scrolling if it gets long
+        // Auto-scroll the board container to center if it overflows
         const container = document.querySelector('.board-container');
-        if (gameUI.board.clientWidth > container.clientWidth) {
+        if (gameUI.board.scrollWidth > container.clientWidth) {
             container.style.overflowX = 'auto';
-            // Scroll to center initially
-            container.scrollLeft = (gameUI.board.clientWidth - container.clientWidth) / 2;
+            requestAnimationFrame(() => {
+                container.scrollLeft = (gameUI.board.scrollWidth - container.clientWidth) / 2;
+            });
         } else {
             container.style.overflowX = 'hidden';
         }
@@ -409,13 +419,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let valid = [];
         hand.forEach(tile => {
-            if (tile[0] === leftEnd || tile[1] === leftEnd) valid.push({ tile, side: 'left' });
-            if (tile[0] === rightEnd || tile[1] === rightEnd) valid.push({ tile, side: 'right' });
+            const matchesLeft = (tile[0] === leftEnd || tile[1] === leftEnd);
+            const matchesRight = (tile[0] === rightEnd || tile[1] === rightEnd);
+            if (matchesLeft) valid.push({ tile, side: 'left' });
+            if (matchesRight) valid.push({ tile, side: 'right' });
         });
         return valid;
     }
 
-    function handleTileClick(tile, validOptions, state) {
+    function handleTileClick(tile, validOptions) {
         // If only one valid option, play it immediately
         if (validOptions.length === 1) {
             network.sendAction({ type: 'PLAY', tile: tile, side: validOptions[0].side });
@@ -423,38 +435,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // If multiple (can go left or right), prompt user
-        // Quick & dirty UI: standard js confirm/prompt or just custom UI
-        const side = window.confirm(`Play on LEFT end? (Cancel to play on RIGHT)`) ? 'left' : 'right';
+        const side = window.confirm(`Play on LEFT end?\n(OK = Left, Cancel = Right)`) ? 'left' : 'right';
         
-        // Ensure choice is valid
         const chosenOption = validOptions.find(o => o.side === side);
         if (chosenOption) {
             network.sendAction({ type: 'PLAY', tile: tile, side: side });
         } else {
-            showToast("Invalid choice!");
+            showToast("Invalid choice, try the other side.");
         }
     }
 
     function showGameOverModal(state) {
         const r = state.roundResult;
+        if (!r) return;
         gameUI.gameOverModal.classList.remove('hidden');
         
         if (state.gameState === 'GAME_OVER') {
-            gameUI.gameOverTitle.innerText = "Game Over!";
+            gameUI.gameOverTitle.innerText = "🏆 Game Over!";
             buttons.nextRound.classList.add('hidden');
         } else {
-            gameUI.gameOverTitle.innerText = r.isBlocked ? "Game Blocked!" : "Round Over!";
-            if (network.isHost) {
+            gameUI.gameOverTitle.innerText = r.isBlocked ? "🔒 Game Blocked!" : "✅ Round Over!";
+            if (network && network.isHost) {
                 buttons.nextRound.classList.remove('hidden');
+            } else {
+                buttons.nextRound.classList.add('hidden');
             }
         }
 
-        gameUI.gameOverMessage.innerText = `${r.winnerName} won the round and gained ${r.pointsGained} points!`;
+        gameUI.gameOverMessage.innerText = `${r.winnerName} won and gained ${r.pointsGained} points!`;
         
         gameUI.scoreBoard.innerHTML = '';
         state.players.forEach(p => {
             const div = document.createElement('div');
-            div.innerText = `${p.name} ${p.isTeam2 ? '(Team 2)' : ''}: ${p.score} pts`;
+            div.style.padding = '0.3rem 0';
+            div.innerText = `${p.name}${p.isTeam2 ? ' (Team 2)' : ''}: ${p.score} pts`;
             gameUI.scoreBoard.appendChild(div);
         });
     }
