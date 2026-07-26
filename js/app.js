@@ -116,11 +116,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initialization ---
     function createNetwork() {
-        // Always create a fresh network instance
         if (network) {
             network.disconnect();
         }
         network = new PeerNetwork(onStateUpdate, onPlayerJoin, onPlayerLeave, onGameStart);
+        
+        const statusLog = document.getElementById('status-log');
+        if (statusLog) {
+            statusLog.classList.remove('hidden');
+            statusLog.innerHTML = '';
+            network.onStatus = (msg) => {
+                const line = document.createElement('div');
+                line.innerText = msg;
+                statusLog.appendChild(line);
+                statusLog.scrollTop = statusLog.scrollHeight;
+            };
+        }
     }
 
     // --- Event Listeners ---

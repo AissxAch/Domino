@@ -289,6 +289,25 @@ input[type="text"]:focus { border-color: var(--primary-color); }
     animation: slideInRight 0.3s ease-out forwards;
 }
 
+/* Status Log */
+.status-log {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #38bdf8;
+    text-align: left;
+    max-height: 120px;
+    overflow-y: auto;
+    word-break: break-all;
+}
+.status-log.hidden {
+    display: none;
+}
+
 /* Animations */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
