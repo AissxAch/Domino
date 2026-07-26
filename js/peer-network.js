@@ -8,9 +8,12 @@ class PeerNetwork {
         this.players = [];
         
         // STUN/TURN ICE Servers Configuration
-        // Note: Mobile data requires a TURN server (e.g. Metered.ca free 20GB/month account)
-        this.meteredApiKey = ""; // Insert Metered API Key here if available (e.g., "abcdef123456...")
-        this.meteredAppName = ""; // Insert Metered App Name here if available (e.g., "my-domino-app")
+        this.meteredAppName = "aissxdev";
+        this.meteredApiKey = "mwIrxZ9zwys65f8QzLsIv3hCSK1G5ZFlL1p9tAPfG4jA-1KD";
+        
+        // Static TURN credentials fallback (if you copy Username & Password from Metered dashboard)
+        this.turnUsername = "";
+        this.turnPassword = "";
 
         this.iceConfig = {
             iceServers: [
@@ -41,17 +44,31 @@ class PeerNetwork {
     }
 
     async fetchIceConfig() {
+        // Option 1: Static TURN credentials from Metered dashboard
+        if (this.meteredAppName && this.turnUsername && this.turnPassword) {
+            this.log('✅ Loaded static TURN credentials');
+            this.iceConfig.iceServers.push(
+                { urls: `turn:${this.meteredAppName}.relay.metered.ca:80`, username: this.turnUsername, credential: this.turnPassword },
+                { urls: `turn:${this.meteredAppName}.relay.metered.ca:443`, username: this.turnUsername, credential: this.turnPassword },
+                { urls: `turns:${this.meteredAppName}.relay.metered.ca:443?transport=tcp`, username: this.turnUsername, credential: this.turnPassword }
+            );
+            return this.iceConfig;
+        }
+
+        // Option 2: Dynamic fetch using Metered API Key
         if (this.meteredAppName && this.meteredApiKey) {
             try {
                 this.log('⏳ Fetching TURN relay credentials...');
                 const res = await fetch(`https://${this.meteredAppName}.metered.live/api/v1/turn/credentials?apiKey=${this.meteredApiKey}`);
-                const iceServers = await res.json();
-                if (Array.isArray(iceServers) && iceServers.length > 0) {
-                    this.iceConfig.iceServers = iceServers;
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    this.iceConfig.iceServers = data;
                     this.log('✅ TURN relay credentials loaded!');
+                } else if (data.error) {
+                    this.log('⚠️ Metered API note: ' + data.error);
                 }
             } catch (err) {
-                this.log('⚠️ Failed to fetch TURN credentials, using default STUN');
+                this.log('⚠️ TURN fetch warning: ' + (err.message || err));
             }
         }
         return this.iceConfig;
